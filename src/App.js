@@ -141,9 +141,12 @@ function Footer({ setPage }) {
               <img src="/logo.jpeg" alt="CalmCall" style={{ width: 30, height: 30, borderRadius: 8, objectFit: "cover" }} />
               <span style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.white }}>CalmCall</span>
             </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,0.55)" }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,0.55)", marginBottom: 16 }}>
               Business call control without the overwhelm. Never let a missed call become a missed opportunity.
             </p>
+            <a href="mailto:calmcalluk@gmail.com" style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.amber, textDecoration: "none", fontWeight: 500 }}>
+              calmcalluk@gmail.com
+            </a>
           </div>
           <div style={{ display: "flex", gap: 56, flexWrap: "wrap" }}>
             <div>
@@ -536,10 +539,36 @@ function Blog() {
 function Contact() {
   const [form, setForm] = useState({ name: "", business: "", email: "", phone: "", trade: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name.trim() || !form.email.trim()) return;
-    setSent(true);
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("https://formspree.io/f/mvgqjqyk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          business: form.business,
+          email: form.email,
+          phone: form.phone,
+          trade: form.trade,
+          message: form.message,
+          _subject: `New CalmCall demo request \u2014 ${form.business || form.name}`,
+        }),
+      });
+      if (res.ok) {
+        setSent(true);
+      } else {
+        setError("Something went wrong sending your request \u2014 please try again or email us directly.");
+      }
+    } catch {
+      setError("Something went wrong sending your request \u2014 please try again or email us directly.");
+    }
+    setSending(false);
   };
 
   const Field = ({ label, children }) => (
@@ -593,8 +622,9 @@ function Contact() {
               <Field label="Anything you'd like us to know?">
                 <textarea style={{ ...inputStyle, minHeight: 90, resize: "vertical" }} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Optional" />
               </Field>
-              <button onClick={submit} style={{ width: "100%", background: T.teal, color: T.white, border: "none", padding: "16px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer", marginTop: 8 }}>
-                Book My Demo
+              {error && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: "#B8483A", marginBottom: 14 }}>{error}</p>}
+              <button onClick={submit} disabled={sending} style={{ width: "100%", background: T.teal, color: T.white, border: "none", padding: "16px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: sending ? "default" : "pointer", marginTop: 8, opacity: sending ? 0.7 : 1 }}>
+                {sending ? "Sending..." : "Book My Demo"}
               </button>
             </>
           )}
