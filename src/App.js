@@ -536,6 +536,13 @@ function Blog() {
 /* ============================================================
    CONTACT PAGE
    ============================================================ */
+const ContactField = ({ label, children }) => (
+  <div style={{ marginBottom: 20 }}>
+    <label style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 8 }}>{label}</label>
+    {children}
+  </div>
+);
+
 function Contact() {
   const [form, setForm] = useState({ name: "", business: "", email: "", phone: "", trade: "", message: "" });
   const [sent, setSent] = useState(false);
@@ -547,7 +554,7 @@ function Contact() {
     setSending(true);
     setError("");
     try {
-      const res = await fetch("https://formspree.io/f/mvgqjqyk", {
+      const res = await fetch("https://formspree.io/f/mbdnjann", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
@@ -571,12 +578,6 @@ function Contact() {
     setSending(false);
   };
 
-  const Field = ({ label, children }) => (
-    <div style={{ marginBottom: 20 }}>
-      <label style={{ display: "block", fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: T.ink, marginBottom: 8 }}>{label}</label>
-      {children}
-    </div>
-  );
   const inputStyle = {
     width: "100%", padding: "13px 16px", border: `1.5px solid ${T.line}`, borderRadius: 12,
     fontFamily: FONT_BODY, fontSize: 15, color: T.charcoal, outline: "none", boxSizing: "border-box", background: T.white,
@@ -604,24 +605,24 @@ function Contact() {
             </div>
           ) : (
             <>
-              <Field label="Full name">
+              <ContactField label="Full name">
                 <input style={inputStyle} value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Your name" />
-              </Field>
-              <Field label="Business name">
+              </ContactField>
+              <ContactField label="Business name">
                 <input style={inputStyle} value={form.business} onChange={e => setForm(f => ({ ...f, business: e.target.value }))} placeholder="Your business" />
-              </Field>
-              <Field label="Email">
+              </ContactField>
+              <ContactField label="Email">
                 <input style={inputStyle} type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="you@business.co.uk" />
-              </Field>
-              <Field label="Phone">
+              </ContactField>
+              <ContactField label="Phone">
                 <input style={inputStyle} value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="07..." />
-              </Field>
-              <Field label="What trade / business are you?">
+              </ContactField>
+              <ContactField label="What trade / business are you?">
                 <input style={inputStyle} value={form.trade} onChange={e => setForm(f => ({ ...f, trade: e.target.value }))} placeholder="e.g. Plumber, Mechanic, Salon..." />
-              </Field>
-              <Field label="Anything you'd like us to know?">
+              </ContactField>
+              <ContactField label="Anything you'd like us to know?">
                 <textarea style={{ ...inputStyle, minHeight: 90, resize: "vertical" }} value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} placeholder="Optional" />
-              </Field>
+              </ContactField>
               {error && <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: "#B8483A", marginBottom: 14 }}>{error}</p>}
               <button onClick={submit} disabled={sending} style={{ width: "100%", background: T.teal, color: T.white, border: "none", padding: "16px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: sending ? "default" : "pointer", marginTop: 8, opacity: sending ? 0.7 : 1 }}>
                 {sending ? "Sending..." : "Book My Demo"}
