@@ -643,12 +643,14 @@ export default function App() {
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
-  const pages = {
-    home: <Home setPage={setPage} />,
-    pricing: <Pricing setPage={setPage} />,
-    about: <About />,
-    blog: <Blog />,
-    contact: <Contact />,
+  const renderPage = () => {
+    switch (page) {
+      case "pricing": return <Pricing setPage={setPage} />;
+      case "about": return <About />;
+      case "blog": return <Blog />;
+      case "contact": return <Contact />;
+      default: return <Home setPage={setPage} />;
+    }
   };
 
   return (
@@ -656,7 +658,7 @@ export default function App() {
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
       <Nav page={page} setPage={setPage} />
-      {pages[page]}
+      {renderPage()}
       <Footer setPage={setPage} />
       <style>{`
         * { box-sizing: border-box; }
