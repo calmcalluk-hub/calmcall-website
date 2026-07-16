@@ -376,7 +376,7 @@ function MissedCallWidget() {
       <Slider label="Calls per day" value={callsPerDay} setValue={setCallsPerDay} min={2} max={60} />
       <Slider label="Roughly missed" value={missedPct} setValue={setMissedPct} min={0} max={100} suffix="%" />
       <Slider label="Turn into a job" value={convertPct} setValue={setConvertPct} min={0} max={100} suffix="%" />
-      <Slider label="Average job value" value={jobValue} setValue={setJobValue} min={20} max={2000} prefix="\u00a3" />
+      <Slider label="Average job value" value={jobValue} setValue={setJobValue} min={20} max={2000} prefix="£" />
       <div style={{ background: T.teal, borderRadius: 14, padding: "18px 20px", marginTop: 6, textAlign: "center" }}>
         <p style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: "rgba(255,255,255,0.7)", margin: "0 0 4px" }}>Estimated lost revenue per month</p>
         <p style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, color: T.white, margin: 0 }}>&pound;{lostPerMonth.toLocaleString()}</p>
