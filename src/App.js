@@ -222,6 +222,84 @@ function PhoneMockup() {
 /* ============================================================
    HOME PAGE
    ============================================================ */
+/* ============================================================
+   MISSED CALL WIDGET — hero attention-grabber + interactive cost calculator
+   Two distinct states: compact ticker card, then a fuller detailed calculator
+   ============================================================ */
+function MissedCallWidget() {
+  const examples = [
+    { time: "09:42", job: "Brake job enquiry", value: 280 },
+    { time: "11:15", job: "Emergency boiler repair", value: 340 },
+    { time: "13:03", job: "Kitchen tap replacement", value: 165 },
+  ];
+  const [idx, setIdx] = useState(0);
+  const [showCalc, setShowCalc] = useState(false);
+  const [callsPerDay, setCallsPerDay] = useState(15);
+  const [missedPct, setMissedPct] = useState(30);
+  const [convertPct, setConvertPct] = useState(35);
+  const [jobValue, setJobValue] = useState(220);
+
+  useEffect(() => {
+    if (showCalc) return;
+    const t = setInterval(() => setIdx(i => (i + 1) % examples.length), 2600);
+    return () => clearInterval(t);
+  }, [showCalc]);
+
+  const current = examples[idx];
+  const missedPerDay = Math.round((callsPerDay * missedPct) / 100);
+  const lostJobsPerWeek = Math.round(missedPerDay * (convertPct / 100) * 5);
+  const lostPerMonth = Math.round(lostJobsPerWeek * jobValue * 4.33);
+
+  const Slider = ({ label, value, setValue, min, max, suffix }) => (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
+        <label style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted }}>{label}</label>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{suffix === "&pound;" ? "\u00a3" : ""}{value}{suffix === "%" ? "%" : ""}</span>
+      </div>
+      <input type="range" min={min} max={max} value={value} onChange={e => setValue(Number(e.target.value))} style={{ width: "100%", accentColor: T.teal }} />
+    </div>
+  );
+
+  if (!showCalc) {
+    return (
+      <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 18, padding: "20px 22px", maxWidth: 400, marginBottom: 20 }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14 }}>
+          <div style={{ width: 38, height: 38, borderRadius: 11, background: "#FBEDEA", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, fontSize: 17 }}>
+            &#128222;
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600, color: "#B8483A", margin: 0 }}>Missed call at {current.time}</p>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.charcoal, margin: "2px 0 0", fontWeight: 500 }}>{current.job} &mdash; worth around &pound;{current.value}</p>
+          </div>
+        </div>
+        <button onClick={() => setShowCalc(true)} style={{
+          width: "100%", background: T.porcelainDeep, border: "none", borderRadius: 100,
+          padding: "10px 0", fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.teal, cursor: "pointer",
+        }}>
+          What's this costing your business? &rarr;
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 20, padding: "28px 30px", maxWidth: 440, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.amberDeep, margin: 0 }}>What's it costing you?</p>
+        <button onClick={() => setShowCalc(false)} style={{ background: "none", border: "none", color: T.muted, fontSize: 20, cursor: "pointer", lineHeight: 1 }} aria-label="Back">&times;</button>
+      </div>
+      <Slider label="Calls per day" value={callsPerDay} setValue={setCallsPerDay} min={2} max={60} suffix="" />
+      <Slider label="Roughly missed" value={missedPct} setValue={setMissedPct} min={0} max={100} suffix="%" />
+      <Slider label="Turn into a job" value={convertPct} setValue={setConvertPct} min={0} max={100} suffix="%" />
+      <Slider label="Average job value" value={jobValue} setValue={setJobValue} min={20} max={2000} suffix="&pound;" />
+      <div style={{ background: T.teal, borderRadius: 14, padding: "18px 20px", marginTop: 6, textAlign: "center" }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: "rgba(255,255,255,0.7)", margin: "0 0 4px" }}>Estimated lost revenue per month</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, color: T.white, margin: 0 }}>&pound;{lostPerMonth.toLocaleString()}</p>
+      </div>
+    </div>
+  );
+}
+
 function Home({ setPage }) {
   return (
     <div>
@@ -229,8 +307,9 @@ function Home({ setPage }) {
       <section style={{ background: `linear-gradient(180deg, ${T.porcelain} 0%, ${T.porcelainDeep} 100%)`, padding: "72px 28px 40px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 40, alignItems: "center" }} className="hero-grid">
           <div>
-            <img src="/logo.jpeg" alt="CalmCall" style={{ width: 140, height: 140, borderRadius: 24, objectFit: "cover", marginBottom: 28, boxShadow: "0 12px 32px rgba(28,79,71,0.18)" }} />
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: T.white, border: `1px solid ${T.line}`, borderRadius: 100, padding: "6px 16px", marginBottom: 28 }}>
+            <img src="/logo.jpeg" alt="CalmCall" style={{ width: 280, height: 280, borderRadius: 36, objectFit: "cover", marginBottom: 20, boxShadow: "0 12px 32px rgba(28,79,71,0.18)" }} />
+            <MissedCallWidget />
+            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
               <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.amber }} />
               <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, fontWeight: 500 }}>Now onboarding UK trades &amp; service businesses</span>
             </div>
