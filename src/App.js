@@ -33,6 +33,16 @@ const NAV_LINKS = [
   { id: "contact", label: "Contact" },
 ];
 
+function AnnouncementBanner() {
+  return (
+    <div style={{ background: T.teal, padding: "10px 28px", textAlign: "center" }}>
+      <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.white, fontWeight: 500 }}>
+        Now onboarding UK trades &amp; service businesses &mdash; <span style={{ color: T.amber, fontWeight: 600 }}>book your demo today</span>
+      </span>
+    </div>
+  );
+}
+
 function Nav({ page, setPage }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -181,16 +191,96 @@ function Footer({ setPage }) {
 function PhoneMockup() {
   const [step, setStep] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setStep(s => (s + 1) % 4), 3800);
+    const t = setInterval(() => setStep(s => (s + 1) % 4), 3600);
     return () => clearInterval(t);
   }, []);
 
-  const steps = [
-    { label: "Incoming call", sub: "Riverside Auto Repairs" },
-    { label: "Call missed", sub: "Personalised greeting and lead capture plays" },
-    { label: "Caller responds", sub: "\u201cHi it's John, my brakes are grinding in my BMW 1 Series and it needs looked at as soon as possible. Please call back at 13:15.\u201d" },
-    { label: "You're notified", sub: "SMS sent to John \u2014 callback booked for 13:15 slot or as soon as possible, input into diary" },
+  const StatusBar = () => (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: T.charcoal }}>
+      <span>9:41</span>
+      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+        <span style={{ fontSize: 10 }}>&#9679;&#9679;&#9679;</span>
+      </div>
+    </div>
+  );
+
+  const AppHeader = ({ title }) => (
+    <div style={{ padding: "14px 20px 12px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: 10 }}>
+      <img src="/logo.jpeg" alt="" style={{ width: 22, height: 22, borderRadius: 6, objectFit: "cover" }} />
+      <span style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.charcoal }}>{title}</span>
+    </div>
+  );
+
+  const screens = [
+    // 0 — Incoming call
+    <div key="0" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <StatusBar />
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
+        <div style={{ width: 84, height: 84, borderRadius: "50%", background: T.teal, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 30, color: T.white, fontWeight: 600 }}>JW</div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, marginBottom: 6 }}>Incoming call</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.charcoal, marginBottom: 60 }}>07700 900 214</p>
+        <div style={{ display: "flex", gap: 48, marginTop: 40 }}>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#E24B4A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: T.white }}>&#128222;</div>
+          <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.teal, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: T.white }}>&#128222;</div>
+        </div>
+      </div>
+    </div>,
+    // 1 — Missed call, capture in progress
+    <div key="1" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <StatusBar />
+      <AppHeader title="CalmCall" />
+      <div style={{ flex: 1, padding: "20px" }}>
+        <div style={{ background: "#FBEDEA", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, color: "#B8483A", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Missed call</p>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.charcoal, margin: 0, fontWeight: 500 }}>07700 900 214</p>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginBottom: 8, fontWeight: 600 }}>CAPTURING ENQUIRY</p>
+        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: "16px 18px" }}>
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontStyle: "italic", color: T.charcoal, lineHeight: 1.5, margin: 0 }}>
+            "Hi it's John, my brakes are grinding in my BMW 1 Series and it needs looked at as soon as possible. Please call back at 13:15."
+          </p>
+        </div>
+      </div>
+    </div>,
+    // 2 — Diary booking
+    <div key="2" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <StatusBar />
+      <AppHeader title="Diary" />
+      <div style={{ flex: 1, padding: "20px" }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginBottom: 10, fontWeight: 600 }}>TODAY</p>
+        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted }}>11:00</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.charcoal, fontWeight: 500 }}>Service &ndash; R. Patel</span>
+        </div>
+        <div style={{ background: T.teal, borderRadius: 12, padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: "rgba(255,255,255,0.75)", display: "block" }}>13:15</span>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.white, fontWeight: 600 }}>Callback &ndash; John, brakes</span>
+          </div>
+          <span style={{ background: T.amber, color: T.charcoal, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100 }}>NEW</span>
+        </div>
+        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted }}>15:30</span>
+          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.charcoal, fontWeight: 500 }}>MOT &ndash; T. Green</span>
+        </div>
+      </div>
+    </div>,
+    // 3 — SMS confirmation
+    <div key="3" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
+      <StatusBar />
+      <AppHeader title="Messages" />
+      <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+        <div style={{ alignSelf: "flex-end", maxWidth: "80%", background: T.teal, borderRadius: "16px 16px 4px 16px", padding: "12px 16px", marginBottom: 10 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.white, margin: 0, lineHeight: 1.5 }}>
+            Thanks for calling! We've booked your callback for 13:15 today. Talk soon &ndash; the team.
+          </p>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, alignSelf: "flex-end", marginBottom: 4 }}>Delivered</p>
+      </div>
+    </div>,
   ];
+
+  const labels = ["Incoming call", "Capturing the job", "Booked in the diary", "Customer confirmed"];
 
   return (
     <div style={{ position: "relative", width: 280, height: 560, margin: "0 auto" }}>
@@ -200,20 +290,13 @@ function PhoneMockup() {
         overflow: "hidden", position: "relative",
       }}>
         <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 120, height: 26, background: T.charcoal, borderRadius: "0 0 16px 16px", zIndex: 10 }} />
-        <div style={{ background: T.porcelain, width: "100%", height: "100%", paddingTop: 50, display: "flex", flexDirection: "column" }}>
-          <div style={{ textAlign: "center", marginBottom: 24 }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: T.teal, margin: "0 auto 14px", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 24, color: T.white, fontWeight: 600 }}>
-              JW
-            </div>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, marginBottom: 4 }}>{steps[step].label}</p>
-            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 17, color: T.charcoal, fontWeight: 600, padding: "0 24px" }}>{steps[step].sub}</p>
-          </div>
-          <div style={{ flex: 1, display: "flex", alignItems: "flex-end", justifyContent: "center", paddingBottom: 40, gap: 8 }}>
-            {steps.map((_, i) => (
-              <div key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? T.amber : T.line, transition: "all .3s" }} />
-            ))}
-          </div>
-        </div>
+        {screens[step]}
+      </div>
+      <p style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted, marginTop: 16, fontWeight: 500 }}>{labels[step]}</p>
+      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8 }}>
+        {screens.map((_, i) => (
+          <div key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? T.amber : T.line, transition: "all .3s" }} />
+        ))}
       </div>
     </div>
   );
@@ -252,11 +335,11 @@ function MissedCallWidget() {
   const lostJobsPerWeek = Math.round(missedPerDay * (convertPct / 100) * 5);
   const lostPerMonth = Math.round(lostJobsPerWeek * jobValue * 4.33);
 
-  const Slider = ({ label, value, setValue, min, max, suffix }) => (
+  const Slider = ({ label, value, setValue, min, max, prefix, suffix }) => (
     <div style={{ marginBottom: 18 }}>
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 7 }}>
         <label style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted }}>{label}</label>
-        <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{suffix === "&pound;" ? "\u00a3" : ""}{value}{suffix === "%" ? "%" : ""}</span>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{prefix || ""}{value}{suffix || ""}</span>
       </div>
       <input type="range" min={min} max={max} value={value} onChange={e => setValue(Number(e.target.value))} style={{ width: "100%", accentColor: T.teal }} />
     </div>
@@ -290,10 +373,10 @@ function MissedCallWidget() {
         <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: T.amberDeep, margin: 0 }}>What's it costing you?</p>
         <button onClick={() => setShowCalc(false)} style={{ background: "none", border: "none", color: T.muted, fontSize: 20, cursor: "pointer", lineHeight: 1 }} aria-label="Back">&times;</button>
       </div>
-      <Slider label="Calls per day" value={callsPerDay} setValue={setCallsPerDay} min={2} max={60} suffix="" />
+      <Slider label="Calls per day" value={callsPerDay} setValue={setCallsPerDay} min={2} max={60} />
       <Slider label="Roughly missed" value={missedPct} setValue={setMissedPct} min={0} max={100} suffix="%" />
       <Slider label="Turn into a job" value={convertPct} setValue={setConvertPct} min={0} max={100} suffix="%" />
-      <Slider label="Average job value" value={jobValue} setValue={setJobValue} min={20} max={2000} suffix="&pound;" />
+      <Slider label="Average job value" value={jobValue} setValue={setJobValue} min={20} max={2000} prefix="\u00a3" />
       <div style={{ background: T.teal, borderRadius: 14, padding: "18px 20px", marginTop: 6, textAlign: "center" }}>
         <p style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: "rgba(255,255,255,0.7)", margin: "0 0 4px" }}>Estimated lost revenue per month</p>
         <p style={{ fontFamily: FONT_DISPLAY, fontSize: 32, fontWeight: 600, color: T.white, margin: 0 }}>&pound;{lostPerMonth.toLocaleString()}</p>
@@ -309,17 +392,12 @@ function Home({ setPage }) {
       <section style={{ background: `linear-gradient(180deg, ${T.porcelain} 0%, ${T.porcelainDeep} 100%)`, padding: "72px 28px 40px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 40, alignItems: "center" }} className="hero-grid">
           <div>
-            <img src="/logo.jpeg" alt="CalmCall" style={{ width: 280, height: 280, borderRadius: 36, objectFit: "cover", marginBottom: 20, boxShadow: "0 12px 32px rgba(28,79,71,0.18)" }} />
-            <MissedCallWidget />
-            <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 24 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: T.amber }} />
-              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, fontWeight: 500 }}>Now onboarding UK trades &amp; service businesses</span>
-            </div>
+            <div style={{ marginBottom: 24 }}><MissedCallWidget /></div>
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(38px, 5vw, 60px)", lineHeight: 1.06, fontWeight: 600, color: T.charcoal, letterSpacing: -1, marginBottom: 24 }}>
               Never let a missed call<br />become a missed job.
             </h1>
             <p style={{ fontFamily: FONT_BODY, fontSize: 18, lineHeight: 1.6, color: T.muted, maxWidth: 480, marginBottom: 36 }}>
-              Voicemail waits. CalmCall responds instantly — capturing the enquiry, reassuring the customer, and telling you exactly who called and why, the moment you're free.
+              Every missed call is a lead sitting in someone else's inbox by lunchtime. CalmCall captures the job, books the callback, and puts your day back in order — automatically.
             </p>
             <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
               <button onClick={() => setPage("contact")} style={{ background: T.teal, color: T.white, border: "none", padding: "16px 32px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" }}>
@@ -738,6 +816,7 @@ export default function App() {
     <div style={{ fontFamily: FONT_BODY, background: T.porcelain, minHeight: "100vh" }}>
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+      <AnnouncementBanner />
       <Nav page={page} setPage={setPage} />
       {renderPage()}
       <Footer setPage={setPage} />
