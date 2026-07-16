@@ -241,8 +241,10 @@ function MissedCallWidget() {
 
   useEffect(() => {
     if (showCalc) return;
-    const t = setInterval(() => setIdx(i => (i + 1) % examples.length), 2600);
+    const len = examples.length;
+    const t = setInterval(() => setIdx(i => (i + 1) % len), 2600);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCalc]);
 
   const current = examples[idx];
