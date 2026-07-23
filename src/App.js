@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 /* ============================================================
    CALMCALL — MARKETING SITE
@@ -531,82 +531,197 @@ function Home({ setPage }) {
    PRICING PAGE
    ============================================================ */
 function Pricing({ setPage }) {
-  const tiers = [
+  const tierMeta = [
     {
-      name: "Basic", price: "£89", was: "£99", per: "/month", tag: null,
+      key: "basic", name: "Basic", tag: null, bestFor: "Single business owners", from: "From £89/mo",
       desc: "SMS-only capture. The simplest way to stop losing calls.",
-      features: ["Instant SMS when a call is missed", "Customer confirmation SMS", "15-minute callback reminder", "Single business owner"],
+      highlights: [
+        "Never let a missed call go unanswered",
+        "Customer gets an instant reply, automatically",
+        "Live in minutes — no training needed",
+      ],
       cta: "Start with Basic", highlight: false,
     },
     {
-      name: "Elite", price: "£129", was: "£149", per: "/month", tag: "Most popular",
+      key: "elite", name: "Elite", tag: "Most popular", bestFor: "Solo traders", from: null,
       desc: "The full branded app — your own personal call CRM.",
-      features: ["Everything in Basic", "Premium branded app", "Calendar & instant callback", "Red / amber / green urgency triage", "Dedicated accounts manager", "Fully tweakable to your business"],
+      highlights: [
+        "Your own branded call app",
+        "Colour-coded urgency, so you call the right people first",
+        "A dedicated manager who knows your business",
+      ],
       cta: "Start with Elite", highlight: true,
     },
     {
-      name: "Enterprise", price: "Custom", was: null, per: "", tag: null,
-      desc: "Built for teams of 6+ — full visibility across every call.",
-      features: ["Basic on every staff phone", "Elite dashboard for the director", "Team-wide callback tracking", "Lead capture per staff member", "Priced per pod"],
+      key: "enterprise", name: "Enterprise", tag: null, bestFor: "Teams", from: null,
+      desc: "Full visibility across every call, every job, every van.",
+      highlights: [
+        "See every call, every staff member, in real time",
+        "Track vans and jobs with live location tracking",
+        "Built to scale as your team grows",
+      ],
       cta: "Talk to us", highlight: false,
     },
   ];
+
+  // "full" = included, "partial" = limited/personal-only version, null = not included
+  const groups = [
+    {
+      label: "Missed call capture",
+      rows: [
+        { label: "Instant SMS when a call is missed", basic: "full", elite: "full", enterprise: "full" },
+        { label: "Customer confirmation SMS", basic: "full", elite: "full", enterprise: "full" },
+        { label: "15-minute callback reminder", basic: "full", elite: "full", enterprise: "full" },
+      ],
+    },
+    {
+      label: "Personal call app",
+      rows: [
+        { label: "Premium branded app", basic: null, elite: "full", enterprise: "full" },
+        { label: "Calendar & instant callback", basic: null, elite: "full", enterprise: "full" },
+        { label: "Red / amber / green urgency triage", basic: null, elite: "full", enterprise: "full" },
+        { label: "Dedicated accounts manager", basic: null, elite: "full", enterprise: "full" },
+        { label: "Fully tweakable to your business", basic: null, elite: "full", enterprise: "full" },
+      ],
+    },
+    {
+      label: "Team & director visibility",
+      rows: [
+        { label: "App on every staff member's phone", basic: null, elite: "partial", enterprise: "full" },
+        { label: "Director's dashboard — staff engagement & call tracking", basic: null, elite: null, enterprise: "full" },
+        { label: "Live location tracker for driving jobs", basic: null, elite: null, enterprise: "full" },
+        { label: "Team-wide callback tracking", basic: null, elite: null, enterprise: "full" },
+        { label: "Lead capture per staff member", basic: null, elite: null, enterprise: "full" },
+      ],
+    },
+  ];
+
+  const Mark = ({ state, highlight }) => {
+    if (state === "full") {
+      return <span style={{ color: highlight ? T.amber : T.teal, fontWeight: 700, fontSize: 16 }}>✓</span>;
+    }
+    if (state === "partial") {
+      return <span style={{ color: highlight ? "rgba(255,255,255,0.55)" : T.muted, fontWeight: 600, fontSize: 12, letterSpacing: 0.3 }}>Basic only</span>;
+    }
+    return <span style={{ color: highlight ? "rgba(255,255,255,0.25)" : "#D8D5CB", fontSize: 15 }}>—</span>;
+  };
 
   return (
     <div>
       <section style={{ padding: "80px 28px 40px", textAlign: "center", background: T.porcelain }}>
         <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 16 }}>Pricing</p>
         <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(32px, 4.5vw, 48px)", fontWeight: 600, color: T.charcoal, marginBottom: 18 }}>
-          Simple pricing. Real value.
+          Find the right level of control.
         </h1>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 16.5, color: T.muted, maxWidth: 520, margin: "0 auto" }}>
-          Three tiers, each one earning the next. No hidden fees, no long contracts.
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16.5, color: T.muted, maxWidth: 540, margin: "0 auto" }}>
+          Three tiers, each one earning the next. Book a demo and we'll recommend the right fit for your business.
         </p>
       </section>
 
-      <section style={{ padding: "40px 28px 100px", background: T.porcelain }}>
+      {/* Tier header cards */}
+      <section style={{ padding: "40px 28px 0", background: T.porcelain }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }} className="pricing-grid">
-          {tiers.map(t => (
-            <div key={t.name} style={{
+          {tierMeta.map(t => (
+            <div key={t.key} style={{
               background: t.highlight ? T.teal : T.white,
-              borderRadius: 24, padding: "40px 32px",
+              borderRadius: 24, padding: "32px 28px",
               border: t.highlight ? "none" : `1px solid ${T.line}`,
               boxShadow: t.highlight ? "0 24px 60px rgba(28,79,71,0.28)" : "0 2px 10px rgba(0,0,0,0.02)",
               position: "relative",
             }}>
               {t.tag && (
-                <div style={{ position: "absolute", top: -14, left: 32, background: T.amber, color: T.charcoal, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "6px 16px", borderRadius: 100 }}>
+                <div style={{ position: "absolute", top: -14, left: 28, background: T.amber, color: T.charcoal, fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, padding: "6px 16px", borderRadius: 100 }}>
                   {t.tag}
                 </div>
               )}
-              <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: t.highlight ? T.white : T.charcoal, marginBottom: 8 }}>{t.name}</h3>
-              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.highlight ? "rgba(255,255,255,0.75)" : T.muted, marginBottom: 24, minHeight: 40, lineHeight: 1.5 }}>{t.desc}</p>
-              <div style={{ marginBottom: 28 }}>
-                {t.was && (
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 16, color: t.highlight ? "rgba(255,255,255,0.5)" : T.muted, textDecoration: "line-through", marginRight: 10 }}>{t.was}</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
+                <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: t.highlight ? T.white : T.charcoal, margin: 0 }}>{t.name}</h3>
+                {t.from && (
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, color: T.muted, background: T.porcelainDeep, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap" }}>
+                    {t.from}
+                  </span>
                 )}
-                <span style={{ fontFamily: FONT_DISPLAY, fontSize: 40, fontWeight: 600, color: t.highlight ? T.white : T.charcoal }}>{t.price}</span>
-                <span style={{ fontFamily: FONT_BODY, fontSize: 15, color: t.highlight ? "rgba(255,255,255,0.6)" : T.muted }}>{t.per}</span>
+              </div>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: t.highlight ? T.amber : T.amberDeep, marginBottom: 12 }}>
+                Best for {t.bestFor}
+              </p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.highlight ? "rgba(255,255,255,0.8)" : T.muted, marginBottom: 20, minHeight: 40, lineHeight: 1.5 }}>{t.desc}</p>
+              <div style={{ marginBottom: 24 }}>
+                {t.highlights.map(h => (
+                  <div key={h} style={{ display: "flex", gap: 9, marginBottom: 10, alignItems: "flex-start" }}>
+                    <span style={{ color: t.highlight ? T.amber : T.teal, fontWeight: 700, fontSize: 13, marginTop: 2 }}>✓</span>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: t.highlight ? "rgba(255,255,255,0.88)" : T.ink, lineHeight: 1.5 }}>{h}</span>
+                  </div>
+                ))}
               </div>
               <button onClick={() => setPage("contact")} style={{
                 width: "100%", padding: "14px 0", borderRadius: 100, border: "none", cursor: "pointer",
-                fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 600, marginBottom: 32,
+                fontFamily: FONT_BODY, fontSize: 14.5, fontWeight: 600,
                 background: t.highlight ? T.white : T.porcelainDeep,
                 color: t.highlight ? T.teal : T.charcoal,
               }}>
                 {t.cta}
               </button>
-              <div>
-                {t.features.map(f => (
-                  <div key={f} style={{ display: "flex", gap: 10, marginBottom: 13, alignItems: "flex-start" }}>
-                    <span style={{ color: t.highlight ? T.amber : T.teal, fontWeight: 700, fontSize: 14, marginTop: 1 }}>✓</span>
-                    <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: t.highlight ? "rgba(255,255,255,0.88)" : T.ink, lineHeight: 1.5 }}>{f}</span>
-                  </div>
-                ))}
-              </div>
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Feature comparison table */}
+      <section style={{ padding: "48px 28px 100px", background: T.porcelain }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto", overflowX: "auto" }}>
+          <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", background: T.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${T.line}` }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "18px 24px", fontFamily: FONT_BODY, fontSize: 13, color: T.muted, fontWeight: 600, background: T.porcelainDeep }}></th>
+                {tierMeta.map(t => (
+                  <th key={t.key} style={{
+                    textAlign: "center", padding: "18px 16px",
+                    fontFamily: FONT_DISPLAY, fontSize: 17, fontWeight: 600,
+                    color: t.highlight ? T.white : T.charcoal,
+                    background: t.highlight ? T.teal : T.porcelainDeep,
+                  }}>
+                    {t.name}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {groups.map((g, gi) => (
+                <React.Fragment key={g.label}>
+                  <tr>
+                    <td colSpan={4} style={{
+                      padding: "16px 24px 8px",
+                      fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase",
+                      color: T.amberDeep, background: T.white, borderTop: gi === 0 ? "none" : `1px solid ${T.line}`,
+                    }}>
+                      {g.label}
+                    </td>
+                  </tr>
+                  {g.rows.map(r => (
+                    <tr key={r.label}>
+                      <td style={{ padding: "12px 24px", fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, borderTop: `1px solid ${T.line}` }}>
+                        {r.label}
+                      </td>
+                      <td style={{ textAlign: "center", padding: "12px 16px", borderTop: `1px solid ${T.line}` }}>
+                        <Mark state={r.basic} highlight={false} />
+                      </td>
+                      <td style={{ textAlign: "center", padding: "12px 16px", background: "rgba(28,79,71,0.04)", borderTop: `1px solid ${T.line}` }}>
+                        <Mark state={r.elite} highlight={false} />
+                      </td>
+                      <td style={{ textAlign: "center", padding: "12px 16px", borderTop: `1px solid ${T.line}` }}>
+                        <Mark state={r.enterprise} highlight={false} />
+                      </td>
+                    </tr>
+                  ))}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, textAlign: "center", maxWidth: 520, margin: "24px auto 0" }}>
+          Not sure which tier fits? Book a 15-minute demo and we'll walk through the right setup for your team.
+        </p>
       </section>
     </div>
   );
