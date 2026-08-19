@@ -531,6 +531,7 @@ function Home({ setPage }) {
    PRICING PAGE
    ============================================================ */
 function Pricing({ setPage }) {
+  const [mobileTier, setMobileTier] = useState("elite");
   const tierMeta = [
     {
       key: "basic", name: "Basic", tag: null, bestFor: "Single business owners", from: "From £89/mo",
@@ -667,9 +668,9 @@ function Pricing({ setPage }) {
         </div>
       </section>
 
-      {/* Feature comparison table */}
+      {/* Feature comparison table (desktop) */}
       <section style={{ padding: "48px 28px 100px", background: T.porcelain }}>
-        <div style={{ maxWidth: 1080, margin: "0 auto", overflowX: "auto" }}>
+        <div className="pricing-table-desktop" style={{ maxWidth: 1080, margin: "0 auto", overflowX: "auto" }}>
           <table style={{ width: "100%", minWidth: 640, borderCollapse: "collapse", background: T.white, borderRadius: 20, overflow: "hidden", border: `1px solid ${T.line}` }}>
             <thead>
               <tr>
@@ -719,6 +720,52 @@ function Pricing({ setPage }) {
             </tbody>
           </table>
         </div>
+
+        {/* Feature comparison table (mobile) — tier picker + single-column checklist, no horizontal scrolling */}
+        <div className="pricing-table-mobile" style={{ maxWidth: 560, margin: "0 auto" }}>
+          <div style={{ display: "flex", gap: 8, marginBottom: 20, background: T.porcelainDeep, borderRadius: 100, padding: 5 }}>
+            {tierMeta.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setMobileTier(t.key)}
+                style={{
+                  flex: 1, padding: "10px 0", borderRadius: 100, border: "none", cursor: "pointer",
+                  fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600,
+                  background: mobileTier === t.key ? T.teal : "transparent",
+                  color: mobileTier === t.key ? T.white : T.muted,
+                  transition: "background 0.15s, color 0.15s",
+                }}
+              >
+                {t.name}
+              </button>
+            ))}
+          </div>
+          <div style={{ background: T.white, borderRadius: 20, border: `1px solid ${T.line}`, overflow: "hidden" }}>
+            {groups.map((g, gi) => (
+              <div key={g.label} style={{ borderTop: gi === 0 ? "none" : `1px solid ${T.line}` }}>
+                <p style={{
+                  margin: 0, padding: "16px 20px 8px",
+                  fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase",
+                  color: T.amberDeep,
+                }}>
+                  {g.label}
+                </p>
+                {g.rows.map(r => (
+                  <div key={r.label} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+                    padding: "12px 20px", borderTop: `1px solid ${T.line}`,
+                  }}>
+                    <span style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.ink, lineHeight: 1.4 }}>{r.label}</span>
+                    <span style={{ flexShrink: 0 }}>
+                      <Mark state={r[mobileTier]} highlight={false} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+
         <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, textAlign: "center", maxWidth: 520, margin: "24px auto 0" }}>
           Not sure which tier fits? Book a 15-minute demo and we'll walk through the right setup for your team.
         </p>
@@ -939,6 +986,7 @@ export default function App() {
         * { box-sizing: border-box; }
         body { margin: 0; }
         button { font-family: inherit; }
+        .pricing-table-mobile { display: none; }
         @media (max-width: 860px) {
           .hero-grid { grid-template-columns: 1fr !important; }
           .hero-grid > div:last-child { order: -1; margin-bottom: 20px; }
@@ -948,6 +996,8 @@ export default function App() {
           .pricing-grid { grid-template-columns: 1fr !important; }
           .nav-desktop { display: none !important; }
           .nav-burger { display: block !important; }
+          .pricing-table-desktop { display: none !important; }
+          .pricing-table-mobile { display: block !important; }
         }
         @media (min-width: 861px) {
           .nav-mobile-panel { display: none !important; }
