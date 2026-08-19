@@ -27,6 +27,7 @@ const FONT_BODY = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
    ============================================================ */
 const NAV_LINKS = [
   { id: "home", label: "Home" },
+  { id: "try", label: "Try CalmCall" },
   { id: "pricing", label: "Pricing" },
   { id: "about", label: "About" },
   { id: "blog", label: "Blog" },
@@ -169,6 +170,7 @@ function Footer({ setPage }) {
             </div>
             <div>
               <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Product</p>
+              <button onClick={() => setPage("try")} style={{ display: "block", background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, cursor: "pointer", textAlign: "left", padding: 0 }}>Try CalmCall</button>
               <button onClick={() => setPage("pricing")} style={{ display: "block", background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, cursor: "pointer", textAlign: "left", padding: 0 }}>Pricing</button>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, color: "rgba(255,255,255,0.4)" }}>Basic</span>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, color: "rgba(255,255,255,0.4)" }}>Elite</span>
@@ -660,6 +662,407 @@ function Home({ setPage }) {
 }
 
 /* ============================================================
+   TRY CALMCALL — fully interactive phone demo
+   ============================================================ */
+const DEMO_TABS = [
+  { id: "calls", label: "Calls", icon: "\u{1F4DE}" },
+  { id: "calendar", label: "Diary", icon: "\u{1F4C5}" },
+  { id: "map", label: "Live Map", icon: "\u{1F4CD}" },
+  { id: "leads", label: "Leads", icon: "\u{1F3AF}" },
+  { id: "team", label: "Team", icon: "\u{1F4CA}" },
+];
+const DEMO_TAB_TITLES = { calls: "Calls", calendar: "Diary", map: "Live Map", leads: "Leads", team: "Team" };
+
+const DEMO_URGENCY_COLOR = { red: "#E24B4A", amber: "#E8A33D", green: "#2A7C6F" };
+const DEMO_URGENCY_LABEL = { red: "Urgent", amber: "Standard", green: "Low priority" };
+
+const DEMO_CALLS = [
+  { id: 1, name: "Priya Shah", initials: "PS", phone: "07700 900 332", time: "08:20", urgency: "red", note: "Boiler emergency — no heating, two kids in the house." },
+  { id: 2, name: "John Walsh", initials: "JW", phone: "07700 900 214", time: "09:05", urgency: "red", note: "Brakes grinding on his BMW 1 Series — wants it looked at today." },
+  { id: 3, name: "Sarah Nguyen", initials: "SN", phone: "07700 900 558", time: "11:42", urgency: "amber", note: "Wants a quote for a kitchen tap replacement, flexible on timing." },
+  { id: 4, name: "Mike Ferreira", initials: "MF", phone: "07700 900 771", time: "13:10", urgency: "amber", note: "General enquiry about annual service pricing." },
+  { id: 5, name: "Grace Okafor", initials: "GO", phone: "07700 900 108", time: "15:36", urgency: "green", note: "Just double-checking opening hours for Saturday." },
+];
+
+const DEMO_CAL_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const DEMO_CAL_EVENTS = {
+  Mon: [{ time: "09:00", title: "MOT — T. Green" }, { time: "13:15", title: "Callback — John, brakes", isNew: true }],
+  Tue: [{ time: "10:30", title: "Callback — Priya, boiler", isNew: true }, { time: "14:00", title: "Install — R. Patel" }],
+  Wed: [{ time: "11:00", title: "Quote visit — Sarah N." }],
+  Thu: [],
+  Fri: [{ time: "09:30", title: "Service — M. Ferreira" }, { time: "16:00", title: "Callback — Grace O." }],
+  Sat: [{ time: "10:00", title: "Emergency call-out" }],
+  Sun: [],
+};
+
+const DEMO_LOCATIONS = [
+  { id: 1, name: "Dave", initials: "D", top: "26%", left: "60%", status: "En route", detail: "Heading to 42 Mill Lane — ETA 12 min.", color: "#E8A33D" },
+  { id: 2, name: "Aisha", initials: "A", top: "56%", left: "28%", status: "On site", detail: "Kitchen refit — started 09:15, roughly 2 hours remaining.", color: "#2A7C6F" },
+  { id: 3, name: "Tom", initials: "T", top: "70%", left: "72%", status: "Available", detail: "Free since 11:40 — nearest to the next job in the queue.", color: "#6B7280" },
+];
+
+const DEMO_LEAD_STAGES = [
+  { id: "new", label: "New", color: "#E24B4A" },
+  { id: "contacted", label: "Contacted", color: "#E8A33D" },
+  { id: "booked", label: "Booked", color: "#2A7C6F" },
+  { id: "won", label: "Won", color: "#1C4F47" },
+];
+const DEMO_LEADS_SEED = [
+  { id: 1, name: "Priya Shah", value: 340, source: "Missed call", stage: "new" },
+  { id: 2, name: "John Walsh", value: 280, source: "Missed call", stage: "new" },
+  { id: 3, name: "Sarah Nguyen", value: 165, source: "SMS enquiry", stage: "contacted" },
+  { id: 4, name: "Mike Ferreira", value: 120, source: "Missed call", stage: "contacted" },
+  { id: 5, name: "R. Patel", value: 890, source: "Website", stage: "booked" },
+  { id: 6, name: "T. Green", value: 75, source: "Repeat customer", stage: "won" },
+];
+
+const DEMO_STAFF = [
+  { id: 1, name: "Dave Coleman", initials: "DC", status: "On the road", calls: 6, color: "#E8A33D" },
+  { id: 2, name: "Aisha Bello", initials: "AB", status: "On site", calls: 4, color: "#2A7C6F" },
+  { id: 3, name: "Tom Ricci", initials: "TR", status: "Available", calls: 9, color: "#1C4F47" },
+  { id: 4, name: "You (Director)", initials: "YOU", status: "Reviewing", calls: 3, color: "#1A1F26" },
+];
+
+function InteractivePhone() {
+  const [tab, setTab] = useState("calls");
+  const [detail, setDetail] = useState(null);
+  const [calDay, setCalDay] = useState("Mon");
+  const [leadsState, setLeadsState] = useState(DEMO_LEADS_SEED);
+
+  const changeTab = (id) => { setTab(id); setDetail(null); };
+
+  const rowButtonStyle = { width: "100%", textAlign: "left", background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer", display: "block" };
+  const sectionLabel = { fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.muted, marginBottom: 10 };
+  const detailEyebrow = { fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.amberDeep, marginBottom: 8 };
+  const detailTitle = { fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: T.charcoal, marginBottom: 10 };
+  const primaryBtn = { flex: 1, background: T.teal, color: T.white, border: "none", padding: "12px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
+  const secondaryBtn = { flex: 1, background: T.porcelainDeep, color: T.charcoal, border: "none", padding: "12px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
+  const statTile = { background: T.porcelainDeep, borderRadius: 12, padding: "14px 12px", textAlign: "center" };
+
+  const CallsScreen = () => (
+    <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      <p style={sectionLabel}>TODAY &mdash; {DEMO_CALLS.length} missed calls</p>
+      {DEMO_CALLS.map(c => (
+        <button key={c.id} onClick={() => setDetail({ type: "call", data: c })} style={rowButtonStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: T.porcelainDeep, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_BODY, fontWeight: 600, fontSize: 13, color: T.charcoal, position: "relative", flexShrink: 0 }}>
+              {c.initials}
+              <span style={{ position: "absolute", bottom: -1, right: -1, width: 10, height: 10, borderRadius: "50%", background: DEMO_URGENCY_COLOR[c.urgency], border: `2px solid ${T.white}` }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{c.name}</p>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 12, color: T.muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{c.note}</p>
+            </div>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, flexShrink: 0 }}>{c.time}</span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
+  const CalendarScreen = () => (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+      <div style={{ display: "flex", padding: "14px 12px 10px", gap: 6, flexShrink: 0 }}>
+        {DEMO_CAL_DAYS.map(d => (
+          <button key={d} onClick={() => setCalDay(d)} style={{
+            flex: 1, padding: "8px 0", borderRadius: 10, border: "none", cursor: "pointer",
+            background: calDay === d ? T.teal : "transparent", color: calDay === d ? T.white : T.muted,
+            fontFamily: FONT_BODY, fontSize: 12, fontWeight: 600,
+          }}>{d}</button>
+        ))}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "6px 18px 18px" }}>
+        {DEMO_CAL_EVENTS[calDay].length === 0 ? (
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, textAlign: "center", marginTop: 40 }}>Nothing booked for {calDay}.</p>
+        ) : DEMO_CAL_EVENTS[calDay].map((ev, i) => (
+          <button key={i} onClick={() => setDetail({ type: "event", data: ev })} style={{ ...rowButtonStyle, background: ev.isNew ? T.teal : T.white, borderColor: ev.isNew ? T.teal : T.line }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 12, color: ev.isNew ? "rgba(255,255,255,0.75)" : T.muted }}>{ev.time}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: ev.isNew ? T.white : T.charcoal }}>{ev.title}</span>
+              </div>
+              {ev.isNew && <span style={{ background: T.amber, color: T.charcoal, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100 }}>NEW</span>}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  const MapScreen = () => (
+    <div style={{ flex: 1, position: "relative", background: "#EDEAE1", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: "22%", left: 0, right: 0, height: 3, background: "#DEDACD" }} />
+      <div style={{ position: "absolute", top: "62%", left: 0, right: 0, height: 3, background: "#DEDACD" }} />
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: "35%", width: 3, background: "#DEDACD" }} />
+      <div style={{ position: "absolute", top: 0, bottom: 0, left: "78%", width: 3, background: "#DEDACD" }} />
+      {DEMO_LOCATIONS.map(v => (
+        <button key={v.id} onClick={() => setDetail({ type: "van", data: v })} style={{
+          position: "absolute", top: v.top, left: v.left, transform: "translate(-50%,-50%)",
+          width: 34, height: 34, borderRadius: "50%", background: v.color, border: `3px solid ${T.white}`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.white, cursor: "pointer",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.18)", padding: 0,
+        }}>{v.initials}</button>
+      ))}
+      <div style={{ position: "absolute", top: 14, left: 14, background: "rgba(255,255,255,0.9)", borderRadius: 10, padding: "6px 12px" }}>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: T.charcoal }}>Live &middot; 3 on the road</span>
+      </div>
+    </div>
+  );
+
+  const LeadsScreen = () => (
+    <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      {DEMO_LEAD_STAGES.map(stage => {
+        const items = leadsState.filter(l => l.stage === stage.id);
+        if (!items.length) return null;
+        return (
+          <div key={stage.id} style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: stage.color, flexShrink: 0 }} />
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: T.muted }}>{stage.label} &middot; {items.length}</p>
+            </div>
+            {items.map(l => (
+              <button key={l.id} onClick={() => setDetail({ type: "lead", data: l })} style={rowButtonStyle}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{l.name}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: T.teal }}>&pound;{l.value}</span>
+                </div>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 11.5, color: T.muted }}>{l.source}</span>
+              </button>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const TeamScreen = () => (
+    <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 18 }}>
+        <div style={statTile}>
+          <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: T.charcoal }}>19</p>
+          <p style={{ margin: "2px 0 0", fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>Calls today</p>
+        </div>
+        <div style={statTile}>
+          <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: T.charcoal }}>94%</p>
+          <p style={{ margin: "2px 0 0", fontFamily: FONT_BODY, fontSize: 11, color: T.muted }}>Answered</p>
+        </div>
+      </div>
+      <p style={sectionLabel}>TEAM</p>
+      {DEMO_STAFF.map(s => (
+        <button key={s.id} onClick={() => setDetail({ type: "staff", data: s })} style={rowButtonStyle}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 34, height: 34, borderRadius: "50%", background: s.color, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.white, flexShrink: 0 }}>{s.initials}</div>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal }}>{s.name}</p>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>{s.status}</p>
+            </div>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, flexShrink: 0 }}>{s.calls} calls</span>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <div style={{ position: "relative", width: 280, height: 560, margin: "0 auto" }}>
+      <div style={{
+        width: "100%", height: "100%", borderRadius: 44, background: T.charcoal,
+        border: "8px solid " + T.charcoal, boxShadow: "0 40px 80px rgba(28,79,71,0.25), 0 10px 30px rgba(0,0,0,0.15)",
+        overflow: "hidden", position: "relative",
+      }}>
+        <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 120, height: 26, background: T.charcoal, borderRadius: "0 0 16px 16px", zIndex: 30 }} />
+        <div style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column", position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 20px 0", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: T.charcoal, flexShrink: 0 }}>
+            <span>9:41</span>
+            <span style={{ fontSize: 10 }}>&#9679;&#9679;&#9679;</span>
+          </div>
+          <div style={{ padding: "14px 20px 12px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            <img src="/logo.jpeg" alt="" style={{ width: 22, height: 22, borderRadius: 6, objectFit: "cover" }} />
+            <span style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.charcoal }}>{DEMO_TAB_TITLES[tab]}</span>
+          </div>
+
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            {tab === "calls" && <CallsScreen />}
+            {tab === "calendar" && <CalendarScreen />}
+            {tab === "map" && <MapScreen />}
+            {tab === "leads" && <LeadsScreen />}
+            {tab === "team" && <TeamScreen />}
+          </div>
+
+          <div style={{ display: "flex", borderTop: `1px solid ${T.line}`, background: T.white, flexShrink: 0 }}>
+            {DEMO_TABS.map(t => (
+              <button key={t.id} onClick={() => changeTab(t.id)} style={{
+                flex: 1, background: "none", border: "none", cursor: "pointer",
+                padding: "10px 0 12px", display: "flex", flexDirection: "column", alignItems: "center", gap: 3,
+              }}>
+                <span style={{ fontSize: 16, opacity: tab === t.id ? 1 : 0.4 }}>{t.icon}</span>
+                <span style={{ fontFamily: FONT_BODY, fontSize: 9.5, fontWeight: 600, color: tab === t.id ? T.teal : T.muted }}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+
+          <div
+            onClick={() => setDetail(null)}
+            style={{
+              position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+              background: "rgba(26,31,38,0.35)",
+              opacity: detail ? 1 : 0,
+              pointerEvents: detail ? "auto" : "none",
+              transition: "opacity .2s ease",
+              zIndex: 20,
+            }}
+          >
+            <div
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: "absolute", left: 0, right: 0, bottom: 0,
+                background: T.white, borderRadius: "20px 20px 0 0",
+                padding: "20px 20px 24px",
+                transform: detail ? "translateY(0)" : "translateY(100%)",
+                transition: "transform .25s ease",
+                maxHeight: "78%", overflowY: "auto",
+              }}
+            >
+              {detail?.type === "call" && (
+                <>
+                  <p style={detailEyebrow}>Missed call &middot; {DEMO_URGENCY_LABEL[detail.data.urgency]}</p>
+                  <h4 style={detailTitle}>{detail.data.name}</h4>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, marginBottom: 14 }}>{detail.data.phone} &middot; {detail.data.time}</p>
+                  <div style={{ background: T.porcelainDeep, borderRadius: 12, padding: "14px 16px", fontFamily: FONT_BODY, fontSize: 13.5, fontStyle: "italic", color: T.ink, lineHeight: 1.5, marginBottom: 18 }}>
+                    &ldquo;{detail.data.note}&rdquo;
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <button style={primaryBtn}>Call back</button>
+                    <button style={secondaryBtn}>Add to diary</button>
+                  </div>
+                </>
+              )}
+              {detail?.type === "event" && (
+                <>
+                  <p style={detailEyebrow}>{calDay} &middot; {detail.data.time}</p>
+                  <h4 style={detailTitle}>{detail.data.title}</h4>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>Synced straight to the diary the moment it was booked &mdash; no manual entry needed.</p>
+                  <button style={primaryBtn}>Open in diary</button>
+                </>
+              )}
+              {detail?.type === "van" && (
+                <>
+                  <p style={detailEyebrow}>{detail.data.status}</p>
+                  <h4 style={detailTitle}>{detail.data.name}</h4>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>{detail.data.detail}</p>
+                  <button style={primaryBtn}>Message {detail.data.name}</button>
+                </>
+              )}
+              {detail?.type === "lead" && (() => {
+                const stageIdx = DEMO_LEAD_STAGES.findIndex(s => s.id === detail.data.stage);
+                const next = DEMO_LEAD_STAGES[stageIdx + 1];
+                return (
+                  <>
+                    <p style={detailEyebrow}>{DEMO_LEAD_STAGES[stageIdx].label} &middot; &pound;{detail.data.value} est.</p>
+                    <h4 style={detailTitle}>{detail.data.name}</h4>
+                    <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, marginBottom: 18 }}>Sourced from: {detail.data.source}</p>
+                    {next ? (
+                      <button
+                        style={primaryBtn}
+                        onClick={() => {
+                          const movedId = detail.data.id;
+                          setLeadsState(ls => ls.map(l => l.id === movedId ? { ...l, stage: next.id } : l));
+                          setDetail(d => ({ ...d, data: { ...d.data, stage: next.id } }));
+                        }}
+                      >
+                        Move to {next.label}
+                      </button>
+                    ) : (
+                      <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.teal, fontWeight: 600 }}>&#10003; Won &mdash; nice work.</p>
+                    )}
+                  </>
+                );
+              })()}
+              {detail?.type === "staff" && (
+                <>
+                  <p style={detailEyebrow}>{detail.data.status}</p>
+                  <h4 style={detailTitle}>{detail.data.name}</h4>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.muted, lineHeight: 1.6, marginBottom: 18 }}>Handled {detail.data.calls} calls today &mdash; visible to directors in real time, across every staff member's phone.</p>
+                  <button style={primaryBtn}>View full activity</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted, marginTop: 16, fontWeight: 500, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
+        Tap around &mdash; calls, diary, live map, leads and team are all live in this demo.
+      </p>
+    </div>
+  );
+}
+
+const TRY_DEMO_FEATURES = [
+  { title: "Missed call capture & triage", tier: "Basic, Elite & Enterprise", desc: "Every missed call captured and colour-coded red, amber or green — so you always know who to call back first." },
+  { title: "Calendar & callbacks", tier: "Elite & Enterprise", desc: "Callbacks land straight in your diary the moment they're captured — no manual booking." },
+  { title: "Live location tracking", tier: "Enterprise", desc: "See every van and every job on the map in real time, wherever your team is working." },
+  { title: "Lead pipeline", tier: "Elite & Enterprise", desc: "Track every enquiry from first contact through to a won job, without it slipping through the cracks." },
+  { title: "Team & director dashboard", tier: "Enterprise", desc: "Full visibility across every staff member's calls, callbacks and performance, in one place." },
+];
+
+function TryDemo({ setPage }) {
+  return (
+    <div>
+      <section style={{ padding: "80px 28px 40px", background: T.porcelain, textAlign: "center" }}>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 16 }}>Try It Yourself</p>
+        <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(32px, 4.5vw, 48px)", fontWeight: 600, color: T.charcoal, maxWidth: 680, margin: "0 auto 18px", lineHeight: 1.15 }}>
+          This is what your team would actually use.
+        </h1>
+        <p style={{ fontFamily: FONT_BODY, fontSize: 16.5, color: T.muted, maxWidth: 560, margin: "0 auto" }}>
+          A live, working example &mdash; not a screenshot. Tap through calls, the diary, live van tracking, leads and the team dashboard exactly as your business would see them.
+        </p>
+      </section>
+
+      <section style={{ padding: "20px 28px 90px", background: T.porcelain }}>
+        <InteractivePhone />
+      </section>
+
+      <section style={{ padding: "20px 28px 100px", background: T.white }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(26px, 3.2vw, 34px)", fontWeight: 600, color: T.charcoal, textAlign: "center", marginBottom: 48 }}>
+            Everything in this demo, all in your app.
+          </h2>
+          <div className="trydemo-features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+            {TRY_DEMO_FEATURES.map(f => (
+              <div key={f.title} style={{ background: T.porcelainDeep, borderRadius: 18, padding: "26px 24px" }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.amberDeep, marginBottom: 10 }}>{f.tier}</p>
+                <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.charcoal, marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: T.muted }}>{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section style={{ padding: "100px 28px", background: T.teal, textAlign: "center" }}>
+        <div style={{ maxWidth: 600, margin: "0 auto" }}>
+          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 600, color: T.white, marginBottom: 20 }}>
+            Like what you see?
+          </h2>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: "rgba(255,255,255,0.75)", marginBottom: 36 }}>
+            This is a simplified example &mdash; your real app is branded to your business, with your own data from day one.
+          </p>
+          <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
+            <button onClick={() => setPage("contact")} style={{ background: T.white, color: T.teal, border: "none", padding: "16px 32px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>
+              Book a Demo
+            </button>
+            <button onClick={() => setPage("pricing")} style={{ background: "none", color: T.white, border: "1.5px solid rgba(255,255,255,0.4)", padding: "16px 32px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" }}>
+              See Pricing
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ============================================================
    PRICING PAGE
    ============================================================ */
 function Pricing({ setPage }) {
@@ -1091,7 +1494,7 @@ function Contact() {
 /* ============================================================
    ROOT APP
    ============================================================ */
-const PAGE_PATHS = { home: "/", pricing: "/pricing", about: "/about", blog: "/blog", contact: "/contact" };
+const PAGE_PATHS = { home: "/", try: "/try", pricing: "/pricing", about: "/about", blog: "/blog", contact: "/contact" };
 
 function pathToPage(pathname) {
   const clean = pathname.replace(/\/+$/, "") || "/";
@@ -1125,6 +1528,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
+      case "try": return <TryDemo setPage={setPage} />;
       case "pricing": return <Pricing setPage={setPage} />;
       case "about": return <About />;
       case "blog": return <Blog />;
@@ -1153,6 +1557,7 @@ export default function App() {
           .trades-grid { grid-template-columns: 1fr 1fr !important; }
           .scenario-grid { grid-template-columns: 1fr !important; }
           .pricing-grid { grid-template-columns: 1fr !important; }
+          .trydemo-features-grid { grid-template-columns: 1fr !important; }
           .nav-desktop { display: none !important; }
           .nav-burger { display: block !important; }
           .pricing-table-desktop { display: none !important; }
