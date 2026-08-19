@@ -385,6 +385,137 @@ function MissedCallWidget() {
   );
 }
 
+/* ============================================================
+   BUSINESS TYPE FINDER — "type your business" widget on the homepage
+   ============================================================ */
+const BUSINESS_LIBRARY = [
+  { name: "Mechanics", aliases: ["mechanic", "garage", "car repair", "auto repair", "mot"], line: "A missed call is a car left on the ramp — and a customer already ringing the garage down the road." },
+  { name: "Plumbers", aliases: ["plumber", "plumbing"], line: "A missed call at 7am is a burst pipe going to whoever picks up first." },
+  { name: "Electricians", aliases: ["electrician", "electrical"], line: "No answer on a call-out, and the customer's already dialling the next name on the list." },
+  { name: "Locksmiths", aliases: ["locksmith", "lock out", "lockout"], line: "Someone locked out doesn't wait around — they call the next locksmith within a minute." },
+  { name: "Jewellers", aliases: ["jeweller", "jewelry", "jewellery"], line: "A missed call could be a repair, a valuation, or a customer ready to spend four figures." },
+  { name: "Beauticians", aliases: ["beautician", "beauty salon", "nail salon", "nail tech", "hairdresser", "hair salon", "barber"], line: "A missed booking call is an empty chair that afternoon — and a client who books elsewhere." },
+  { name: "Roofers", aliases: ["roofer", "roofing"], line: "Storm damage enquiries go to whoever answers first, not whoever does the best work." },
+  { name: "Estate Agents", aliases: ["estate agent", "letting agent", "property agent"], line: "A missed call from a hot lead is a viewing booked with a rival agency instead." },
+  { name: "Dentists", aliases: ["dentist", "dental practice", "dental clinic"], line: "A patient in pain rarely waits for a callback — they ring the next practice straight away." },
+  { name: "Vets", aliases: ["vet", "veterinary", "vets"], line: "A missed call from a worried pet owner is an emergency going to the practice down the road." },
+  { name: "Personal Trainers", aliases: ["personal trainer", "pt", "fitness coach"], line: "A missed enquiry call is a new client signing up with someone who actually picked up." },
+  { name: "Cleaners", aliases: ["cleaner", "cleaning company", "cleaning service"], line: "A missed call is a booking gone to whichever cleaner answered first." },
+  { name: "Removals", aliases: ["removal", "man and van", "movers", "moving company"], line: "Quote enquiries move fast — miss the call and the job's gone to a faster responder." },
+  { name: "Photographers", aliases: ["photographer", "photography"], line: "A missed call about a wedding date is a booking made with someone else within the hour." },
+  { name: "Florists", aliases: ["florist", "flower shop"], line: "Same-day orders don't wait for a voicemail callback — they go to the next florist on Google." },
+  { name: "Tattoo Studios", aliases: ["tattoo", "tattoo artist", "tattoo studio"], line: "A missed consultation call is a booking made at the studio next door." },
+  { name: "Gyms", aliases: ["gym", "fitness studio", "leisure centre"], line: "A missed membership enquiry rarely calls back — they just join wherever answered first." },
+  { name: "Restaurants", aliases: ["restaurant", "takeaway", "eatery"], line: "A missed booking call on a Friday night is a table that sits empty." },
+  { name: "Caterers", aliases: ["caterer", "catering"], line: "A missed catering enquiry is a full order going straight to a competitor." },
+  { name: "Builders", aliases: ["builder", "building contractor", "construction"], line: "A missed call about a quote is a job going to whichever builder rang back first." },
+  { name: "Painters & Decorators", aliases: ["painter", "decorator", "painting and decorating"], line: "A missed call is a job lost to the decorator who actually picked up." },
+  { name: "Gardeners", aliases: ["gardener", "landscaper", "landscaping"], line: "Seasonal enquiries move fast — miss the call and the job's gone before you're free to ring back." },
+  { name: "Pest Control", aliases: ["pest control", "exterminator"], line: "A call about pests rarely waits — it becomes an emergency call to whoever answers." },
+  { name: "Driving Instructors", aliases: ["driving instructor", "driving school"], line: "A missed enquiry from a nervous new learner usually just goes to the next instructor on the list." },
+  { name: "Accountants", aliases: ["accountant", "accountancy", "bookkeeper"], line: "A missed call from a new client enquiry is a relationship that starts with your competitor instead." },
+  { name: "Solicitors", aliases: ["solicitor", "lawyer", "law firm"], line: "Someone in a legal bind rarely waits around for a callback." },
+  { name: "Recruitment Agencies", aliases: ["recruiter", "recruitment agency", "staffing agency"], line: "A missed call from a candidate or client is a placement that starts somewhere else." },
+  { name: "IT Support", aliases: ["it support", "it company", "tech support", "managed service provider"], line: "A business with a system down escalates fast — and they'll ring the next provider." },
+  { name: "Window Cleaners", aliases: ["window cleaner", "window cleaning"], line: "A missed call is a round booking going to whoever picked up the phone." },
+  { name: "Chimney Sweeps", aliases: ["chimney sweep"], line: "A missed call before winter is a booking that goes to the sweep who actually answered." },
+  { name: "Physiotherapists", aliases: ["physiotherapist", "physio", "osteopath", "chiropractor"], line: "Someone in pain rarely waits — they book with the next clinic that answers." },
+  { name: "Wedding Planners", aliases: ["wedding planner", "event planner", "event hire"], line: "A missed call about a wedding date is a booking made elsewhere within the hour." },
+  { name: "Taxi Firms", aliases: ["taxi", "private hire", "minicab"], line: "A missed call is a fare gone to the firm that actually picked up." },
+  { name: "Car Valeting", aliases: ["car valet", "car detailing", "mobile valeting"], line: "A missed call is a booking gone to the next valet down the road." },
+];
+
+function findBusinessMatch(query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  let best = null;
+  let bestScore = -1;
+  for (const b of BUSINESS_LIBRARY) {
+    const name = b.name.toLowerCase();
+    let score = -1;
+    if (name === q) score = 100;
+    else if (name.startsWith(q)) score = 90;
+    else if (b.aliases.some(a => a === q)) score = 85;
+    else if (b.aliases.some(a => a.startsWith(q))) score = 70;
+    else if (name.includes(q)) score = 60;
+    else if (b.aliases.some(a => a.includes(q))) score = 50;
+    else if (q.length > 3 && b.aliases.some(a => q.includes(a))) score = 40;
+    if (score > bestScore) { bestScore = score; best = b; }
+  }
+  return bestScore >= 40 ? best : null;
+}
+
+function BusinessTypeFinder({ setPage }) {
+  const [query, setQuery] = useState("");
+  const match = findBusinessMatch(query);
+  const hasTyped = query.trim().length > 0;
+
+  return (
+    <div style={{ maxWidth: 640, margin: "56px auto 0" }}>
+      <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 14, textAlign: "center" }}>
+        Don't see your trade?
+      </p>
+      <div style={{ position: "relative" }}>
+        <span style={{ position: "absolute", left: 22, top: "50%", transform: "translateY(-50%)", fontSize: 16, pointerEvents: "none" }} aria-hidden="true">
+          &#128269;
+        </span>
+        <input
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Type your business here — e.g. hairdresser, builder, vet..."
+          style={{
+            width: "100%", padding: "16px 20px 16px 50px", border: `1.5px solid ${T.line}`, borderRadius: 100,
+            fontFamily: FONT_BODY, fontSize: 15, color: T.charcoal, outline: "none", boxSizing: "border-box", background: T.white,
+          }}
+        />
+        {hasTyped && (
+          <button
+            onClick={() => setQuery("")}
+            aria-label="Clear"
+            style={{ position: "absolute", right: 18, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: T.muted, fontSize: 18, cursor: "pointer", lineHeight: 1 }}
+          >
+            &times;
+          </button>
+        )}
+      </div>
+
+      {hasTyped && (
+        <div style={{
+          marginTop: 18, background: T.white, borderRadius: 18, border: `1px solid ${T.line}`,
+          padding: "24px 26px", boxShadow: "0 2px 10px rgba(0,0,0,0.02)",
+        }}>
+          {match ? (
+            <>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.teal, marginBottom: 8 }}>
+                For {match.name.toLowerCase()}
+              </p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 15.5, lineHeight: 1.6, color: T.ink, marginBottom: 18 }}>
+                {match.line}
+              </p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.teal, marginBottom: 8 }}>
+                For {query.trim()}
+              </p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 15.5, lineHeight: 1.6, color: T.ink, marginBottom: 18 }}>
+                We haven't got a canned example for that one yet — but if a ringing phone ever costs you a customer, CalmCall's built for you too. Book a demo and we'll show you exactly how it'd fit.
+              </p>
+            </>
+          )}
+          <button onClick={() => setPage("contact")} style={{
+            background: T.teal, color: T.white, border: "none", padding: "12px 26px", borderRadius: 100,
+            fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, cursor: "pointer",
+          }}>
+            See how it'd work for you
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Home({ setPage }) {
   return (
     <div>
@@ -506,6 +637,7 @@ function Home({ setPage }) {
               </div>
             ))}
           </div>
+          <BusinessTypeFinder setPage={setPage} />
         </div>
       </section>
 
