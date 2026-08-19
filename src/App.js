@@ -665,13 +665,17 @@ function Home({ setPage }) {
    TRY CALMCALL — fully interactive phone demo
    ============================================================ */
 const DEMO_TABS = [
+  { id: "home", label: "Home", icon: "\u{1F3E0}" },
   { id: "calls", label: "Calls", icon: "\u{1F4DE}" },
   { id: "calendar", label: "Diary", icon: "\u{1F4C5}" },
   { id: "map", label: "Live Map", icon: "\u{1F4CD}" },
   { id: "leads", label: "Leads", icon: "\u{1F3AF}" },
   { id: "team", label: "Team", icon: "\u{1F4CA}" },
 ];
-const DEMO_TAB_TITLES = { calls: "Calls", calendar: "Diary", map: "Live Map", leads: "Leads", team: "Team" };
+const DEMO_TAB_TITLES = { home: "CalmCall", calls: "Calls", calendar: "Diary", map: "Live Map", leads: "Leads", team: "Team" };
+
+const DEMO_CALL_EXAMPLE = { name: "John Walsh", initials: "JW", phone: "07700 900 214", note: "Hi it's John, my brakes are grinding on my BMW 1 Series and it needs looked at as soon as possible. Please call back at 13:15.", value: 280 };
+const DEMO_CALL_STEP_LABELS = ["Incoming call", "Call missed — CalmCall answers instantly", "Capturing the job", "Booked & confirmed"];
 
 const DEMO_URGENCY_COLOR = { red: "#E24B4A", amber: "#E8A33D", green: "#2A7C6F" };
 const DEMO_URGENCY_LABEL = { red: "Urgent", amber: "Standard", green: "Low priority" };
@@ -724,12 +728,20 @@ const DEMO_STAFF = [
 ];
 
 function InteractivePhone() {
-  const [tab, setTab] = useState("calls");
+  const [tab, setTab] = useState("home");
   const [detail, setDetail] = useState(null);
   const [calDay, setCalDay] = useState("Mon");
   const [leadsState, setLeadsState] = useState(DEMO_LEADS_SEED);
+  const [callStep, setCallStep] = useState(0);
 
   const changeTab = (id) => { setTab(id); setDetail(null); };
+
+  // Auto-advance the "example call" walkthrough while the Home tab is showing.
+  useEffect(() => {
+    if (tab !== "home") return;
+    const t = setInterval(() => setCallStep(s => (s + 1) % 4), 2600);
+    return () => clearInterval(t);
+  }, [tab]);
 
   const rowButtonStyle = { width: "100%", textAlign: "left", background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, cursor: "pointer", display: "block" };
   const sectionLabel = { fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", color: T.muted, marginBottom: 10 };
@@ -738,6 +750,62 @@ function InteractivePhone() {
   const primaryBtn = { flex: 1, background: T.teal, color: T.white, border: "none", padding: "12px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
   const secondaryBtn = { flex: 1, background: T.porcelainDeep, color: T.charcoal, border: "none", padding: "12px 0", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
   const statTile = { background: T.porcelainDeep, borderRadius: 12, padding: "14px 12px", textAlign: "center" };
+
+  const HomeScreen = () => (
+    <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
+      <div style={{ background: T.teal, borderRadius: 16, padding: "18px 20px", marginBottom: 20 }}>
+        <p style={{ margin: "0 0 4px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase", color: "rgba(255,255,255,0.7)" }}>Money made this month</p>
+        <p style={{ margin: "0 0 6px", fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 600, color: T.white }}>&pound;4,280</p>
+        <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 12, color: "rgba(255,255,255,0.75)", lineHeight: 1.5 }}>From 14 calls that would otherwise have been missed</p>
+      </div>
+
+      <p style={sectionLabel}>See it happen</p>
+      <button
+        onClick={() => setCallStep(s => (s + 1) % 4)}
+        style={{ width: "100%", textAlign: "left", background: T.white, border: `1px solid ${T.line}`, borderRadius: 16, padding: "18px 18px 16px", cursor: "pointer" }}
+      >
+        {callStep === 0 && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "6px 0 4px" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.teal, marginBottom: 12, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 20, color: T.white, fontWeight: 600 }}>
+              {DEMO_CALL_EXAMPLE.initials}
+            </div>
+            <p style={{ margin: "0 0 3px", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted }}>Incoming call&hellip;</p>
+            <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.charcoal }}>{DEMO_CALL_EXAMPLE.phone}</p>
+          </div>
+        )}
+        {callStep === 1 && (
+          <>
+            <div style={{ background: "#FBEDEA", borderRadius: 12, padding: "12px 14px", marginBottom: 4 }}>
+              <p style={{ margin: "0 0 3px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: "#B8483A", textTransform: "uppercase", letterSpacing: 0.5 }}>Missed call</p>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 13.5, color: T.charcoal, fontWeight: 500 }}>{DEMO_CALL_EXAMPLE.name} &middot; {DEMO_CALL_EXAMPLE.phone}</p>
+            </div>
+            <p style={{ margin: "10px 0 0", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted, lineHeight: 1.5 }}>CalmCall answered instantly, so {DEMO_CALL_EXAMPLE.name.split(" ")[0]} never hit silence or a generic voicemail.</p>
+          </>
+        )}
+        {callStep === 2 && (
+          <>
+            <p style={{ margin: "0 0 8px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>Capturing the enquiry</p>
+            <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 14.5, fontStyle: "italic", color: T.charcoal, lineHeight: 1.5 }}>&ldquo;{DEMO_CALL_EXAMPLE.note}&rdquo;</p>
+          </>
+        )}
+        {callStep === 3 && (
+          <>
+            <p style={{ margin: "0 0 8px", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 700, color: T.teal, textTransform: "uppercase", letterSpacing: 0.5 }}>Booked &amp; confirmed</p>
+            <div style={{ background: T.teal, borderRadius: "14px 14px 4px 14px", padding: "10px 14px", marginBottom: 8 }}>
+              <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 12.5, color: T.white, lineHeight: 1.5 }}>Thanks for calling! We&rsquo;ve booked your callback for 13:15 today.</p>
+            </div>
+            <p style={{ margin: 0, fontFamily: FONT_BODY, fontSize: 12, color: T.muted }}>&pound;{DEMO_CALL_EXAMPLE.value} job value protected.</p>
+          </>
+        )}
+      </button>
+      <p style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 11.5, color: T.muted, margin: "10px 0 0" }}>{DEMO_CALL_STEP_LABELS[callStep]}</p>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
+        {DEMO_CALL_STEP_LABELS.map((_, i) => (
+          <div key={i} style={{ width: i === callStep ? 16 : 6, height: 6, borderRadius: 4, background: i === callStep ? T.amber : T.line, transition: "all .3s" }} />
+        ))}
+      </div>
+    </div>
+  );
 
   const CallsScreen = () => (
     <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px" }}>
@@ -883,6 +951,7 @@ function InteractivePhone() {
           </div>
 
           <div style={{ flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            {tab === "home" && <HomeScreen />}
             {tab === "calls" && <CallsScreen />}
             {tab === "calendar" && <CalendarScreen />}
             {tab === "map" && <MapScreen />}
@@ -992,7 +1061,7 @@ function InteractivePhone() {
         </div>
       </div>
       <p style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted, marginTop: 16, fontWeight: 500, maxWidth: 300, marginLeft: "auto", marginRight: "auto" }}>
-        Tap around &mdash; calls, diary, live map, leads and team are all live in this demo.
+        Tap around &mdash; home, calls, diary, live map, leads and team are all live in this demo.
       </p>
     </div>
   );
