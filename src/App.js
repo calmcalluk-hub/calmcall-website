@@ -1091,8 +1091,35 @@ function Contact() {
 /* ============================================================
    ROOT APP
    ============================================================ */
+const PAGE_PATHS = { home: "/", pricing: "/pricing", about: "/about", blog: "/blog", contact: "/contact" };
+
+function pathToPage(pathname) {
+  const clean = pathname.replace(/\/+$/, "") || "/";
+  const found = Object.entries(PAGE_PATHS).find(([, p]) => p === clean);
+  return found ? found[0] : "home";
+}
+
 export default function App() {
-  const [page, setPage] = useState("home");
+  const [page, setPageState] = useState(() => pathToPage(window.location.pathname));
+
+  // Keep the URL and browser history in sync with the current page, so the
+  // back/forward buttons work between pages instead of just changing state.
+  const setPage = (id) => {
+    setPageState(id);
+    const path = PAGE_PATHS[id] || "/";
+    if (window.location.pathname !== path) {
+      window.history.pushState({ page: id }, "", path);
+    }
+  };
+
+  useEffect(() => {
+    // Make sure the very first history entry carries page info too.
+    window.history.replaceState({ page }, "", PAGE_PATHS[page] || "/");
+    const onPopState = () => setPageState(pathToPage(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { window.scrollTo(0, 0); }, [page]);
 
