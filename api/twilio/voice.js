@@ -13,37 +13,31 @@ import {
   sendSms,
   sessionId,
   twimlForTurn,
+  validateTwilioRequest,
 } from './_darren.js';
 
 const GREETING = "Hi, Darren here from CalmCall. Who've I got the pleasure of speaking with?";
 const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
 const FALLBACK = "No worries. I'm having a bit of trouble with my brain at the minute. Could I take your name and get someone from CalmCall to give you a ring back?";
 
-function query(req, key) {
-  return req.query && req.query[key] ? String(req.query[key]) : '';
-}
-
-function callbackActionUrl(id) {
-  return `${BASE_URL}?session=${encodeURIComponent(id)}`;
-}
+function query(req, key) { return req.query && req.query[key] ? String(req.query[key]) : ''; }
+function callbackActionUrl(id) { return `${BASE_URL}?session=${encodeURIComponent(id)}`; }
 
 async function makeTurnResponse(res, sessionIdValue, session, reply, action) {
   const safeReply = String(reply || RETRY).trim().slice(0, 1200);
   let audioUrl = null;
-  try {
-    audioUrl = await createDynamicAudio(safeReply);
-  } catch (err) {
-    console.error('Darren TTS failed, using Polly fallback:', err);
-  }
+  try { audioUrl = await createDynamicAudio(safeReply); } catch (err) { console.error('Darren TTS failed, using Polly fallback:', err); }
 
   const shouldEnd = action === 'end_call';
   if (shouldEnd) await emitLead(session, 'call_end');
 
+  const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
   const twiml = twimlForTurn({
     text: safeReply,
     audioUrl,
     actionUrl: callbackActionUrl(sessionIdValue),
     hangup: shouldEnd,
+    handoffNumber,
   });
   return res.status(200).send(twiml);
 }
@@ -53,6 +47,10 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">Method not allowed.</Say><Hangup/></Response>');
+  }
+
+  if (!validateTwilioRequest(req)) {
+    return res.status(403).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">Request not authorised.</Say><Hangup/></Response>');
   }
 
   const callSid = String(req.body?.CallSid || '');
@@ -84,9 +82,7 @@ export default async function handler(req, res) {
     addHistory(session, 'caller', speech);
 
     const obviousTrade = matchTrade(speech);
-    if (!session.lead.industry && obviousTrade) {
-      session.lead.industry = obviousTrade.label;
-    }
+    if (!session.lead.industry && obviousTrade) session.lead.industry = obviousTrade.label;
 
     let result;
     try {
@@ -114,7 +110,6 @@ export default async function handler(req, res) {
 
     await saveSession(id, session);
     await emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn');
-
     return makeTurnResponse(res, id, session, result.reply, result.action);
   } catch (err) {
     console.error('Darren voice webhook failed:', err);
