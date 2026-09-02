@@ -12,6 +12,19 @@ const TRADE_INFO = {
   beauty: { label: 'beauty salons', example: 'a treatment booking', value: 65 },
   salon: { label: 'salons', example: 'a treatment booking', value: 65 },
   beautician: { label: 'beauticians', example: 'a treatment booking', value: 65 },
+  surveyor: { label: 'surveyors', example: 'a property survey', value: 350 },
+  barber: { label: 'barbers', example: 'a haircut booking', value: 35 },
+  hairdresser: { label: 'hairdressers', example: 'a haircut booking', value: 45 },
+  dentist: { label: 'dentists', example: 'a check-up', value: 150 },
+  veterinary: { label: 'vets', example: 'a pet consultation', value: 90 },
+  accountant: { label: 'accountants', example: 'a tax return', value: 220 },
+  solicitor: { label: 'solicitors', example: 'a legal consultation', value: 300 },
+  roofer: { label: 'roofers', example: 'a roof repair', value: 350 },
+  builder: { label: 'builders', example: 'a renovation quote', value: 450 },
+  decorator: { label: 'painters and decorators', example: 'a room repaint', value: 180 },
+  cleaner: { label: 'cleaning companies', example: 'a deep clean booking', value: 80 },
+  gardener: { label: 'gardeners', example: 'a garden clearance', value: 120 },
+  landscaper: { label: 'landscapers', example: 'a garden project', value: 300 },
 };
 
 function matchTrade(speech) {
@@ -23,16 +36,15 @@ function matchTrade(speech) {
   return null;
 }
 
+function tradeKeyFor(trade) {
+  if (!trade) return 'generic';
+  return Object.keys(TRADE_INFO).find((k) => TRADE_INFO[k] === trade) || 'generic';
+}
+
 function escapeXml(str) {
   return String(str).replace(/[<>&'"]/g, (c) => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
   }[c]));
-}
-
-function fallbackMessage(trade) {
-  return trade
-    ? `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. ${trade.label} typically lose around ${trade.value} pounds every time a job like ${trade.example} slips through. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`
-    : `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. Every trade and service business loses jobs to missed calls. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`;
 }
 
 async function withTimeout(fn, ms) {
@@ -43,44 +55,6 @@ async function withTimeout(fn, ms) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-async function generatePitchText(trade) {
-  const context = trade
-    ? `The caller said they run a ${trade.label} business. A typical missed job for them, like ${trade.example}, costs around £${trade.value}.`
-    : `The caller didn't name a recognisable trade, so keep it general.`;
-
-  const response = await withTimeout((signal) => fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-5-mini',
-      messages: [
-        {
-          role: 'system',
-          content: 'You write short, warm, spoken-word phone pitches for CalmCall, a UK service that answers missed calls for trade and service businesses. Reply with ONE short paragraph only, 3-4 sentences, no headings, no markdown, written to be read aloud by a text-to-speech voice. Always end by inviting the caller to visit calmcall dot co dot uk to book a demo, and thank them for calling.',
-        },
-        { role: 'user', content: context },
-      ],
-      max_completion_tokens: 500,
-      reasoning_effort: 'low',
-    }),
-  }), 6000);
-
-  if (!response.ok) {
-    const errBody = await response.text().catch(() => '');
-    throw new Error(`OpenAI error ${response.status}: ${errBody.slice(0, 300)}`);
-  }
-  const data = await response.json();
-  const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
-    ? data.choices[0].message.content.trim()
-    : '';
-  if (!text) throw new Error('OpenAI returned no text');
-  return text;
 }
 
 async function synthesizeSpeech(text) {
@@ -104,80 +78,134 @@ async function synthesizeSpeech(text) {
   return Buffer.from(arrayBuffer);
 }
 
-async function uploadAudio(buffer) {
-  const filename = `twilio-pitches/${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`;
+async function uploadAudio(buffer, fixedPath) {
+  const filename = fixedPath || `twilio-pitches/${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`;
   const blob = await put(filename, buffer, {
     access: 'public',
     contentType: 'audio/mpeg',
-    addRandomSuffix: true,
+    addRandomSuffix: !fixedPath,
+    allowOverwrite: !!fixedPath,
   });
   return blob.url;
 }
 
-const GREETING_TEXT = "Welcome to CalmCall. Please specify what business you're calling from.";
-const GREETING_BLOB_PATH = 'twilio-pitches/greeting.mp3';
-
-async function getGreetingAudioUrl() {
+async function getCachedAudioUrl(cacheKey, text) {
+  const path = `twilio-pitches/${cacheKey}.mp3`;
   try {
-    const existing = await head(GREETING_BLOB_PATH);
+    const existing = await head(path);
     return existing.url;
   } catch (err) {
     // Not cached yet - fall through and generate it below.
   }
-  const audioBuffer = await synthesizeSpeech(GREETING_TEXT);
-  const blob = await put(GREETING_BLOB_PATH, audioBuffer, {
-    access: 'public',
-    contentType: 'audio/mpeg',
-    allowOverwrite: true,
-  });
-  return blob.url;
+  const buffer = await synthesizeSpeech(text);
+  return uploadAudio(buffer, path);
+}
+
+const BASE_URL = 'https://www.calmcall.co.uk/api/twilio/voice';
+const GREETING_TEXT = "Welcome to CalmCall. Please specify what business you're calling from.";
+const COMPANY_PROMPT = "Thank you. Could you tell me whether you're an independent business, or if you have multiple staff?";
+const SIZE_PROMPT = "Great, thank you. CalmCall gives you 24 hour lead generation, along with callback time management. Someone from CalmCall can call you back any time between 9 and 8. What time would suit you?";
+const RETRY_PROMPT = "Sorry, let's start again. What business are you calling from?";
+
+function lossLine(trade) {
+  if (!trade) {
+    return "Missed calls like this cost businesses money every single day. Can I take the name of your company?";
+  }
+  const label = trade.label.charAt(0).toUpperCase() + trade.label.slice(1);
+  return `${label} like yours typically lose around £${trade.value} every time a call like ${trade.example} goes unanswered. Can I take the name of your company?`;
+}
+
+function gatherTwiml(sayText, audioUrl, nextAction) {
+  const voicePart = audioUrl
+    ? `<Play>${escapeXml(audioUrl)}</Play>`
+    : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="auto" language="en-GB">
+    ${voicePart}
+  </Gather>
+  <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
+</Response>`;
+}
+
+function finalTwiml(sayText, audioUrl) {
+  const voicePart = audioUrl
+    ? `<Play>${escapeXml(audioUrl)}</Play>`
+    : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  ${voicePart}
+  <Hangup/>
+</Response>`;
+}
+
+async function cachedOrNull(cacheKey, text) {
+  try {
+    return await getCachedAudioUrl(cacheKey, text);
+  } catch (err) {
+    console.error(`AI voice failed for "${cacheKey}", falling back to canned message:`, err);
+    return null;
+  }
 }
 
 export default async function handler(req, res) {
   const speech = req.body && req.body.SpeechResult;
+  const step = (req.query && req.query.step) || '';
   res.setHeader('Content-Type', 'text/xml');
 
-  if (!speech) {
-    let greetingTwiml;
-    try {
-      const audioUrl = await getGreetingAudioUrl();
-      greetingTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="speech" action="https://www.calmcall.co.uk/api/twilio/voice" method="POST" speechTimeout="auto" language="en-GB">
-    <Play>${escapeXml(audioUrl)}</Play>
-  </Gather>
-  <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
-</Response>`;
-    } catch (err) {
-      console.error('Greeting AI voice failed, falling back to canned message:', err);
-      greetingTwiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Gather input="speech" action="https://www.calmcall.co.uk/api/twilio/voice" method="POST" speechTimeout="auto" language="en-GB">
-    <Say voice="Polly.Amy">Welcome to CalmCall. Please specify what business you're calling from.</Say>
-  </Gather>
-  <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
-</Response>`;
-    }
-    return res.status(200).send(greetingTwiml);
-  }
-  
-  const trade = matchTrade(speech);
-
   try {
-    const pitchText = await generatePitchText(trade);
-    const audioBuffer = await synthesizeSpeech(pitchText);
-    const audioUrl = await uploadAudio(audioBuffer);
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Play>${escapeXml(audioUrl)}</Play>
-</Response>`;
-    return res.status(200).send(twiml);
+    if (!speech) {
+      const audioUrl = await cachedOrNull('greeting', GREETING_TEXT);
+      const nextAction = `${BASE_URL}?step=trade`;
+      return res.status(200).send(gatherTwiml(GREETING_TEXT, audioUrl, nextAction));
+    }
+
+    if (step === 'trade') {
+      const trade = matchTrade(speech);
+      const tradeKey = tradeKeyFor(trade);
+      const text = lossLine(trade);
+      const audioUrl = await cachedOrNull(`loss-${tradeKey}`, text);
+      const nextAction = `${BASE_URL}?step=company&trade=${encodeURIComponent(tradeKey)}`;
+      return res.status(200).send(gatherTwiml(text, audioUrl, nextAction));
+    }
+
+    if (step === 'company') {
+      const companyName = speech.trim();
+      const trade = (req.query && req.query.trade) || 'generic';
+      const audioUrl = await cachedOrNull('company-prompt', COMPANY_PROMPT);
+      const nextAction = `${BASE_URL}?step=size&trade=${encodeURIComponent(trade)}&company=${encodeURIComponent(companyName)}`;
+      return res.status(200).send(gatherTwiml(COMPANY_PROMPT, audioUrl, nextAction));
+    }
+
+    if (step === 'size') {
+      const sizeAnswer = speech.trim();
+      const trade = (req.query && req.query.trade) || 'generic';
+      const company = (req.query && req.query.company) || '';
+      const audioUrl = await cachedOrNull('size-prompt', SIZE_PROMPT);
+      const nextAction = `${BASE_URL}?step=time&trade=${encodeURIComponent(trade)}&company=${encodeURIComponent(company)}&size=${encodeURIComponent(sizeAnswer)}`;
+      return res.status(200).send(gatherTwiml(SIZE_PROMPT, audioUrl, nextAction));
+    }
+
+    if (step === 'time') {
+      const callbackTime = speech.trim();
+      const text = `Great, I've got your callback booked for ${callbackTime}. Thanks for calling CalmCall - head to calmcall dot co dot uk to find out more.`;
+      let audioUrl = null;
+      try {
+        const buffer = await synthesizeSpeech(text);
+        audioUrl = await uploadAudio(buffer);
+      } catch (err) {
+        console.error('Booking-confirmation AI voice failed, falling back to canned message:', err);
+      }
+      return res.status(200).send(finalTwiml(text, audioUrl));
+    }
+
+    const nextAction = `${BASE_URL}?step=trade`;
+    return res.status(200).send(gatherTwiml(RETRY_PROMPT, null, nextAction));
   } catch (err) {
-    console.error('AI voice pipeline failed, falling back to canned message:', err);
-    const message = fallbackMessage(trade);
+    console.error('Voice webhook failed entirely, falling back to canned message:', err);
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="Polly.Amy">${escapeXml(message)}</Say>
+  <Say voice="Polly.Amy">Sorry, something went wrong. Please give us a call back any time.</Say>
 </Response>`;
     return res.status(200).send(twiml);
   }
