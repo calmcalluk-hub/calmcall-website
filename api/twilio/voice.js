@@ -115,14 +115,17 @@ function lossLine(trade) {
   return `${label} like yours typically lose around ${trade.value} pounds every time a call like ${trade.example} goes unanswered. Can I take the name of your company?`;
 }
 
-function gatherTwiml(sayText, audioUrl, nextAction) {
+const TRADE_HINTS = Array.from(new Set(Object.values(TRADE_INFO).map((t) => t.label))).join(', ');
+
+function gatherTwiml(sayText, audioUrl, nextAction, hints) {
   const voicePart = audioUrl
     ? `<Play>${escapeXml(audioUrl)}</Play>`
     : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
+  const hintsAttr = hints ? ` hints="${escapeXml(hints)}"` : '';
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   ${voicePart}
-  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="auto" language="en-GB" />
+  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="1" speechModel="phone_call" language="en-GB"${hintsAttr} />
   <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
 </Response>`;
 }
@@ -156,7 +159,7 @@ export default async function handler(req, res) {
     if (!speech) {
       const audioUrl = await cachedOrNull('greeting', GREETING_TEXT);
       const nextAction = `${BASE_URL}?step=trade`;
-      return res.status(200).send(gatherTwiml(GREETING_TEXT, audioUrl, nextAction));
+      return res.status(200).send(gatherTwiml(GREETING_TEXT, audioUrl, nextAction, TRADE_HINTS));
     }
 
     if (step === 'trade') {
