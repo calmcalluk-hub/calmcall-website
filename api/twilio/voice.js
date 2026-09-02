@@ -1,4 +1,4 @@
-import { put } from '@vercel/blob';
+import { put, head } from '@vercel/blob';
 
 const TRADE_INFO = {
   plumber: { label: 'plumbers', example: 'a burst pipe callout', value: 220 },
@@ -113,21 +113,53 @@ async function uploadAudio(buffer) {
   return blob.url;
 }
 
+const GREETING_TEXT = "Welcome to CalmCall. Please specify what business you're calling from.";
+const GREETING_BLOB_PATH = 'twilio-pitches/greeting.mp3';
+
+async function getGreetingAudioUrl() {
+  try {
+    const existing = await head(GREETING_BLOB_PATH);
+    return existing.url;
+  } catch (err) {
+    // Not cached yet - fall through and generate it below.
+  }
+  const audioBuffer = await synthesizeSpeech(GREETING_TEXT);
+  const blob = await put(GREETING_BLOB_PATH, audioBuffer, {
+    access: 'public',
+    contentType: 'audio/mpeg',
+    allowOverwrite: true,
+  });
+  return blob.url;
+}
+
 export default async function handler(req, res) {
   const speech = req.body && req.body.SpeechResult;
   res.setHeader('Content-Type', 'text/xml');
 
   if (!speech) {
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+    let greetingTwiml;
+    try {
+      const audioUrl = await getGreetingAudioUrl();
+      greetingTwiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Gather input="speech" action="https://www.calmcall.co.uk/api/twilio/voice" method="POST" speechTimeout="auto" language="en-GB">
+    <Play>${escapeXml(audioUrl)}</Play>
+  </Gather>
+  <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
+</Response>`;
+    } catch (err) {
+      console.error('Greeting AI voice failed, falling back to canned message:', err);
+      greetingTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Gather input="speech" action="https://www.calmcall.co.uk/api/twilio/voice" method="POST" speechTimeout="auto" language="en-GB">
     <Say voice="Polly.Amy">Welcome to CalmCall. Please specify what business you're calling from.</Say>
   </Gather>
   <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
 </Response>`;
-    return res.status(200).send(twiml);
+    }
+    return res.status(200).send(greetingTwiml);
   }
-
+  
   const trade = matchTrade(speech);
 
   try {
