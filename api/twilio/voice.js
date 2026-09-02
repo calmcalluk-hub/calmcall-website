@@ -66,7 +66,8 @@ async function generatePitchText(trade) {
         },
         { role: 'user', content: context },
       ],
-      max_completion_tokens: 220,
+      max_completion_tokens: 500,
+      reasoning_effort: 'low',
     }),
   }), 6000);
 
