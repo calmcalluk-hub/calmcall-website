@@ -66,12 +66,14 @@ async function generatePitchText(trade) {
         },
         { role: 'user', content: context },
       ],
-      max_tokens: 220,
-      temperature: 0.7,
+      max_completion_tokens: 220,
     }),
   }), 6000);
 
-  if (!response.ok) throw new Error(`OpenAI error ${response.status}`);
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => '');
+    throw new Error(`OpenAI error ${response.status}: ${errBody.slice(0, 300)}`);
+  }
   const data = await response.json();
   const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
     ? data.choices[0].message.content.trim()
