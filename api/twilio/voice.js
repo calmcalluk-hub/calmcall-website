@@ -112,7 +112,7 @@ function lossLine(trade) {
     return "Missed calls like this cost businesses money every single day. Can I take the name of your company?";
   }
   const label = trade.label.charAt(0).toUpperCase() + trade.label.slice(1);
-  return `${label} like yours typically lose around £${trade.value} every time a call like ${trade.example} goes unanswered. Can I take the name of your company?`;
+  return `${label} like yours typically lose around ${trade.value} pounds every time a call like ${trade.example} goes unanswered. Can I take the name of your company?`;
 }
 
 function gatherTwiml(sayText, audioUrl, nextAction) {
@@ -121,9 +121,8 @@ function gatherTwiml(sayText, audioUrl, nextAction) {
     : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="auto" language="en-GB">
-    ${voicePart}
-  </Gather>
+  ${voicePart}
+  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="auto" language="en-GB" />
   <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
 </Response>`;
 }
@@ -164,7 +163,7 @@ export default async function handler(req, res) {
       const trade = matchTrade(speech);
       const tradeKey = tradeKeyFor(trade);
       const text = lossLine(trade);
-      const audioUrl = await cachedOrNull(`loss-${tradeKey}`, text);
+      const audioUrl = await cachedOrNull(`loss-v2-${tradeKey}`, text);
       const nextAction = `${BASE_URL}?step=company&trade=${encodeURIComponent(tradeKey)}`;
       return res.status(200).send(gatherTwiml(text, audioUrl, nextAction));
     }
