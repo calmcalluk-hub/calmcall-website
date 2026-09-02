@@ -1,3 +1,5 @@
+import { put } from '@vercel/blob';
+
 const TRADE_INFO = {
   plumber: { label: 'plumbers', example: 'a burst pipe callout', value: 220 },
   plumbing: { label: 'plumbers', example: 'a burst pipe callout', value: 220 },
@@ -11,6 +13,7 @@ const TRADE_INFO = {
   salon: { label: 'salons', example: 'a treatment booking', value: 65 },
   beautician: { label: 'beauticians', example: 'a treatment booking', value: 65 },
 };
+
 function matchTrade(speech) {
   if (!speech) return null;
   const text = speech.toLowerCase();
@@ -19,14 +22,99 @@ function matchTrade(speech) {
   }
   return null;
 }
+
 function escapeXml(str) {
   return String(str).replace(/[<>&'"]/g, (c) => ({
     '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
   }[c]));
 }
-export default function handler(req, res) {
+
+function fallbackMessage(trade) {
+  return trade
+    ? `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. ${trade.label} typically lose around ${trade.value} pounds every time a job like ${trade.example} slips through. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`
+    : `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. Every trade and service business loses jobs to missed calls. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`;
+}
+
+async function withTimeout(fn, ms) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fn(controller.signal);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function generatePitchText(trade) {
+  const context = trade
+    ? `The caller said they run a ${trade.label} business. A typical missed job for them, like ${trade.example}, costs around £${trade.value}.`
+    : `The caller didn't name a recognisable trade, so keep it general.`;
+
+  const response = await withTimeout((signal) => fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-5-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You write short, warm, spoken-word phone pitches for CalmCall, a UK service that answers missed calls for trade and service businesses. Reply with ONE short paragraph only, 3-4 sentences, no headings, no markdown, written to be read aloud by a text-to-speech voice. Always end by inviting the caller to visit calmcall dot co dot uk to book a demo, and thank them for calling.',
+        },
+        { role: 'user', content: context },
+      ],
+      max_tokens: 220,
+      temperature: 0.7,
+    }),
+  }), 6000);
+
+  if (!response.ok) throw new Error(`OpenAI error ${response.status}`);
+  const data = await response.json();
+  const text = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content
+    ? data.choices[0].message.content.trim()
+    : '';
+  if (!text) throw new Error('OpenAI returned no text');
+  return text;
+}
+
+async function synthesizeSpeech(text) {
+  const voiceId = process.env.ELEVENLABS_VOICE_ID;
+  const response = await withTimeout((signal) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      'xi-api-key': process.env.ELEVENLABS_API_KEY,
+    },
+    body: JSON.stringify({
+      text,
+      model_id: 'eleven_multilingual_v2',
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
+    }),
+  }), 8000);
+
+  if (!response.ok) throw new Error(`ElevenLabs error ${response.status}`);
+  const arrayBuffer = await response.arrayBuffer();
+  return Buffer.from(arrayBuffer);
+}
+
+async function uploadAudio(buffer) {
+  const filename = `twilio-pitches/${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`;
+  const blob = await put(filename, buffer, {
+    access: 'public',
+    contentType: 'audio/mpeg',
+    addRandomSuffix: true,
+  });
+  return blob.url;
+}
+
+export default async function handler(req, res) {
   const speech = req.body && req.body.SpeechResult;
   res.setHeader('Content-Type', 'text/xml');
+
   if (!speech) {
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
@@ -37,13 +125,25 @@ export default function handler(req, res) {
 </Response>`;
     return res.status(200).send(twiml);
   }
+
   const trade = matchTrade(speech);
-  const message = trade
-    ? `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. ${trade.label} typically lose around ${trade.value} pounds every time a job like ${trade.example} slips through. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`
-    : `Perfect. CalmCall can help you save money by making sure calls like this never go unanswered. Every trade and service business loses jobs to missed calls. We'd have answered instantly, captured the details, and got it booked back in, automatically. Head to calmcall dot co dot uk to book a demo. Thanks for calling.`;
-  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+
+  try {
+    const pitchText = await generatePitchText(trade);
+    const audioBuffer = await synthesizeSpeech(pitchText);
+    const audioUrl = await uploadAudio(audioBuffer);
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Play>${escapeXml(audioUrl)}</Play>
+</Response>`;
+    return res.status(200).send(twiml);
+  } catch (err) {
+    console.error('AI voice pipeline failed, falling back to canned message:', err);
+    const message = fallbackMessage(trade);
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="Polly.Amy">${escapeXml(message)}</Say>
 </Response>`;
-  res.status(200).send(twiml);
+    return res.status(200).send(twiml);
+  }
 }
