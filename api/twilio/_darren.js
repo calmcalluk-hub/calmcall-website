@@ -1,9 +1,9 @@
-import { put, head } from '@vercel/blob';
-import crypto from 'crypto';
+const { put, head } = require('@vercel/blob');
+const crypto = require('crypto');
 
-export const BASE_URL = process.env.CALMCALL_VOICE_BASE_URL || 'https://www.calmcall.co.uk/api/twilio/voice';
+const BASE_URL = process.env.CALMCALL_VOICE_BASE_URL || 'https://www.calmcall.co.uk/api/twilio/voice';
 
-export const TRADE_INFO = {
+const TRADE_INFO = {
   plumber: { label: 'plumbing', typicalJob: 'a plumbing callout', value: 220 },
   plumbing: { label: 'plumbing', typicalJob: 'a plumbing callout', value: 220 },
   mechanic: { label: 'a garage or mechanic', typicalJob: 'a repair or service booking', value: 280 },
@@ -30,7 +30,7 @@ export const TRADE_INFO = {
   landscaper: { label: 'landscaping', typicalJob: 'a landscaping project', value: 300 },
 };
 
-export function matchTrade(text = '') {
+function matchTrade(text = '') {
   const lower = text.toLowerCase();
   for (const [key, value] of Object.entries(TRADE_INFO)) {
     if (lower.includes(key)) return { key, ...value };
@@ -44,7 +44,7 @@ function keyMaterial() {
   return crypto.createHash('sha256').update(secret).digest();
 }
 
-export function encryptSession(session) {
+function encryptSession(session) {
   const iv = crypto.randomBytes(12);
   const cipher = crypto.createCipheriv('aes-256-gcm', keyMaterial(), iv);
   const encrypted = Buffer.concat([cipher.update(JSON.stringify(session), 'utf8'), cipher.final()]);
@@ -52,7 +52,7 @@ export function encryptSession(session) {
   return Buffer.concat([iv, tag, encrypted]).toString('base64url');
 }
 
-export function decryptSession(payload) {
+function decryptSession(payload) {
   const raw = Buffer.from(payload, 'base64url');
   const iv = raw.subarray(0, 12);
   const tag = raw.subarray(12, 28);
@@ -62,25 +62,25 @@ export function decryptSession(payload) {
   return JSON.parse(Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8'));
 }
 
-export function sessionId() { return crypto.randomUUID(); }
+function sessionId() { return crypto.randomUUID(); }
 
 function sessionPath(id) { return `twilio-sessions/${id}.json`; }
 
-export async function saveSession(id, session) {
+async function saveSession(id, session) {
   return (await put(sessionPath(id), Buffer.from(encryptSession(session)), { access:'public', contentType:'text/plain', allowOverwrite:true })).url;
 }
 
-export async function loadSession(id) {
+async function loadSession(id) {
   const meta = await head(sessionPath(id));
   const response = await fetch(meta.url);
   if (!response.ok) throw new Error(`Session read failed: ${response.status}`);
   return decryptSession(await response.text());
 }
 
-export function cleanText(text, max = 1200) { return String(text || '').replace(/\s+/g, ' ').trim().slice(0, max); }
-export function escapeXml(str) { return String(str).replace(/[<>&'\"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', "'":'&apos;', '"':'&quot;' }[c])); }
-export function normalizeSpeech(text) { return cleanText(text, 1000); }
-export function addHistory(session, role, text) { session.history = [...(session.history || []), { role, text: cleanText(text, 900), at:new Date().toISOString() }].slice(-12); }
+function cleanText(text, max = 1200) { return String(text || '').replace(/\s+/g, ' ').trim().slice(0, max); }
+function escapeXml(str) { return String(str).replace(/[<>&'\"]/g, (c) => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', "'":'&apos;', '"':'&quot;' }[c])); }
+function normalizeSpeech(text) { return cleanText(text, 1000); }
+function addHistory(session, role, text) { session.history = [...(session.history || []), { role, text: cleanText(text, 900), at:new Date().toISOString() }].slice(-12); }
 
 const INDUSTRY_HINTS = Object.values(TRADE_INFO).map((x) => x.label).join(', ');
 function businessContext(lead) {
@@ -90,69 +90,71 @@ function businessContext(lead) {
   return info ? `The caller appears to run ${info.label}. A typical missed opportunity could be ${info.typicalJob}, with an indicative value of about £${info.value}. Never present that value as a guaranteed fact; use it only as context.` : '';
 }
 
-export async function askDarren(session, callerSpeech) {
+async function askDarren(session, callerSpeech) {
   const history = (session.history || []).slice(-8).map((m) => `${m.role === 'caller' ? 'Caller' : 'Darren'}: ${m.text}`).join('\n');
   const lead = session.lead || {};
   const prompt = `You are Darren, the friendly Yorkshire-voiced phone receptionist and lead qualification agent for CalmCall, a UK missed-call recovery and lead-management service for trades and service businesses.
 
-Your job is to have a genuinely natural conversation, understand why the caller is calling, gather useful lead information without interrogating them, and arrange an appropriate next step. You are not a rigid questionnaire.
+  Your job is to have a genuinely natural conversation, understand why the caller is calling, gather useful lead information without interrogating them, and arrange an appropriate next step. You are not a rigid questionnaire.
 
-VOICE STYLE:
-- Warm, calm, concise, natural British English.
-- Light Yorkshire character, but never caricatured.
-- Use contractions and occasional natural phrases such as "got you", "no worries", "fair enough", "right".
-- One or two short sentences at a time. Ask at most one main question in a turn.
-- Never say you are an AI unless directly asked. If asked, be honest that you're CalmCall's automated phone assistant.
-- Do not invent company facts, prices, availability, appointments, customer records or guarantees.
-- Do not claim something is booked unless the system explicitly confirms it.
-- If the caller needs something that requires a human, offer a callback or human handoff rather than bluffing.
-- If the caller says they are not interested, politely finish without pressure.
-- If they provide multiple answers at once, acknowledge and use all useful information. Do not ask for information they already gave.
-- If they interrupt or correct themselves, adapt.
+  VOICE STYLE:
+  - Warm, calm, concise, natural British English.
+  - Light Yorkshire character, but never caricatured.
+  - Use contractions and occasional natural phrases such as "got you", "no worries", "fair enough", "right".
+  - One or two short sentences at a time. Ask at most one main question in a turn.
+  - Never say you are an AI unless directly asked. If asked, be honest that you're CalmCall's automated phone assistant.
+  - Do not invent company facts, prices, availability, appointments, customer records or guarantees.
+  - Do not claim something is booked unless the system explicitly confirms it.
+  - If the caller needs something that requires a human, offer a callback or human handoff rather than bluffing.
+  - If the caller says they are not interested, politely finish without pressure.
+  - If they provide multiple answers at once, acknowledge and use all useful information. Do not ask for information they already gave.
+  - If they interrupt or correct themselves, adapt.
 
-WHAT TO LEARN WHEN NATURAL:
-name, company, industry, location, team size, reason for call, missed call frequency, current problem, typical customer/job value, urgency, decision-maker status, preferred callback time, email if voluntarily provided.
+  WHAT TO LEARN WHEN NATURAL:
+  name, company, industry, location, team size, reason for call, missed call frequency, current problem, typical customer/job value, urgency, decision-maker status, preferred callback time, email if voluntarily provided.
 
-LEAD SCORING:
-Start around 30. Increase for clear business fit, meaningful missed-call volume, high-value jobs, decision-maker status, and buying intent. Decrease for spam, irrelevant callers, or explicit disinterest. Return a score 0-100 and temperature cold/warm/hot.
+  LEAD SCORING:
+  Start around 30. Increase for clear business fit, meaningful missed-call volume, high-value jobs, decision-maker status, and buying intent. Decrease for spam, irrelevant callers, or explicit disinterest. Return a score 0-100 and temperature cold/warm/hot.
 
-SAFE NEXT ACTIONS:
-- continue: keep talking and ask the next useful question.
-- callback_requested: caller wants a callback. Do not claim it has been booked.
-- human_handoff: the issue needs a person.
-- end_call: caller is done, uninterested, spam, or the conversation is complete.
+  SAFE NEXT ACTIONS:
+  - continue: keep talking and ask the next useful question.
+  - callback_requested: caller wants a callback. Do not claim it has been booked.
+  - human_handoff: the issue needs a person.
+  - end_call: caller is done, uninterested, spam, or the conversation is complete.
 
-${businessContext(lead)}
+  ${businessContext(lead)}
 
-CURRENT LEAD DATA:
-${JSON.stringify(lead)}
+  CURRENT LEAD DATA:
+  ${JSON.stringify(lead)}
 
-RECENT CONVERSATION:
-${history || '(none)'}
+  RECENT CONVERSATION:
+  ${history || '(none)'}
 
-CALLER'S LATEST WORDS:
-${callerSpeech}
+  CALLER'S LATEST WORDS:
+  ${callerSpeech}
 
-Return ONLY valid JSON matching the supplied schema. The reply must sound like something Darren would actually say aloud. Keep it under 45 words unless a safety or clarification reason genuinely requires more.`;
+  Return ONLY valid JSON matching the supplied schema. The reply must sound like something Darren would actually say aloud. Keep it under 45 words unless a safety or clarification reason genuinely requires more.`;
 
-  const response = await withTimeout((signal) => fetch('https://api.openai.com/v1/chat/completions', {
-    method:'POST', signal,
-    headers:{'Content-Type':'application/json', Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},
-    body:JSON.stringify({
-      model:process.env.CALMCALL_OPENAI_MODEL || 'gpt-5-mini',
-      messages:[{role:'system',content:'You are a production voice-agent decision engine. Output only JSON.'},{role:'user',content:prompt}],
-      max_completion_tokens:900,
-      reasoning_effort:'low',
-      response_format:{type:'json_schema',json_schema:{name:'darren_turn',strict:true,schema:{type:'object',additionalProperties:false,properties:{
-        reply:{type:'string'},
-        intent:{type:'string',enum:['information','demo_interest','callback','booking','support','complaint','spam','not_interested','unknown']},
-        action:{type:'string',enum:['continue','callback_requested','human_handoff','end_call']},
-        lead:{type:'object',additionalProperties:false,properties:{
-          name:{type:'string'},company:{type:'string'},industry:{type:'string'},location:{type:'string'},teamSize:{type:'string'},reason:{type:'string'},missedCalls:{type:'string'},jobValue:{type:'string'},urgency:{type:'string'},decisionMaker:{type:'boolean'},callbackTime:{type:'string'},email:{type:'string'},interest:{type:'string'},notes:{type:'string'},score:{type:'integer',minimum:0,maximum:100},temperature:{type:'string',enum:['cold','warm','hot']}
-        },required:['name','company','industry','location','teamSize','reason','missedCalls','jobValue','urgency','decisionMaker','callbackTime','email','interest','notes','score','temperature']}
-      },required:['reply','intent','action','lead']}}}}
-    }),
-  }),9000);
+const responseFormat = {type:'json_schema',json_schema:{name:'darren_turn',strict:true,schema:{type:'object',additionalProperties:false,properties:{
+  reply:{type:'string'},
+  intent:{type:'string',enum:['information','demo_interest','callback','booking','support','complaint','spam','not_interested','unknown']},
+  action:{type:'string',enum:['continue','callback_requested','human_handoff','end_call']},
+  lead:{type:'object',additionalProperties:false,properties:{
+    name:{type:'string'},company:{type:'string'},industry:{type:'string'},location:{type:'string'},teamSize:{type:'string'},reason:{type:'string'},missedCalls:{type:'string'},jobValue:{type:'string'},urgency:{type:'string'},decisionMaker:{type:'boolean'},callbackTime:{type:'string'},email:{type:'string'},interest:{type:'string'},notes:{type:'string'},score:{type:'integer',minimum:0,maximum:100},temperature:{type:'string',enum:['cold','warm','hot']}
+  },required:['name','company','industry','location','teamSize','reason','missedCalls','jobValue','urgency','decisionMaker','callbackTime','email','interest','notes','score','temperature']}
+},required:['reply','intent','action','lead']}}};
+
+const response = await withTimeout((signal) => fetch('https://api.openai.com/v1/chat/completions', {
+  method:'POST', signal,
+  headers:{'Content-Type':'application/json', Authorization:`Bearer ${process.env.OPENAI_API_KEY}`},
+  body:JSON.stringify({
+    model:process.env.CALMCALL_OPENAI_MODEL || 'gpt-5-mini',
+    messages:[{role:'system',content:'You are a production voice-agent decision engine. Output only JSON.'},{role:'user',content:prompt}],
+    max_completion_tokens:900,
+    reasoning_effort:'low',
+    response_format:responseFormat,
+  }),
+}), 9000);
   if (!response.ok) { const body=await response.text().catch(()=> ''); throw new Error(`OpenAI ${response.status}: ${body.slice(0,500)}`); }
   const data=await response.json();
   const text=data.choices?.[0]?.message?.content?.trim();
@@ -160,12 +162,12 @@ Return ONLY valid JSON matching the supplied schema. The reply must sound like s
   return JSON.parse(text);
 }
 
-export async function withTimeout(fn, ms) {
+async function withTimeout(fn, ms) {
   const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),ms);
   try{return await fn(controller.signal);} finally{clearTimeout(timer);}
 }
 
-export async function synthesizeSpeech(text) {
+async function synthesizeSpeech(text) {
   const voiceId=process.env.ELEVENLABS_VOICE_ID;
   if(!voiceId || !process.env.ELEVENLABS_API_KEY) throw new Error('ElevenLabs environment variables are missing');
   const response=await withTimeout((signal)=>fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_22050_32`,{
@@ -176,30 +178,30 @@ export async function synthesizeSpeech(text) {
   return Buffer.from(await response.arrayBuffer());
 }
 
-export async function audioUrlFor(text, cacheKey) {
+async function audioUrlFor(text, cacheKey) {
   const path=`twilio-pitches/${cacheKey}.mp3`;
   try{return (await head(path)).url;}catch(_){}
   return (await put(path,await synthesizeSpeech(text),{access:'public',contentType:'audio/mpeg',allowOverwrite:true})).url;
 }
-export async function createDynamicAudio(text){const hash=crypto.createHash('sha256').update(text).digest('hex').slice(0,32);return audioUrlFor(text,`darren-${hash}`);}
+async function createDynamicAudio(text){const hash=crypto.createHash('sha256').update(text).digest('hex').slice(0,32);return audioUrlFor(text,`darren-${hash}`);}
 
-export function twimlForTurn({text,audioUrl,actionUrl,hangup=false,handoffNumber=''}){
+function twimlForTurn({text,audioUrl,actionUrl,hangup=false,handoffNumber=''}){
   const voice=audioUrl?`<Play>${escapeXml(audioUrl)}</Play>`:`<Say voice="Polly.Amy">${escapeXml(text)}</Say>`;
   if(handoffNumber)return `<?xml version="1.0" encoding="UTF-8"?><Response>${voice}<Dial timeout="20" answerOnBridge="true"><Number>${escapeXml(handoffNumber)}</Number></Dial></Response>`;
   if(hangup)return `<?xml version="1.0" encoding="UTF-8"?><Response>${voice}<Hangup/></Response>`;
   return `<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="speech" action="${escapeXml(actionUrl)}" method="POST" speechTimeout="auto" timeout="6" actionOnEmptyResult="true" language="en-GB" speechModel="phone_call">${voice}</Gather><Say voice="Polly.Amy">Sorry, I didn't catch that. Could you say that again?</Say></Response>`;
 }
 
-export function initialSession(callSid,from,to){return{version:2,callSid,from,to,createdAt:new Date().toISOString(),turns:0,history:[],lead:{name:'',company:'',industry:'',location:'',teamSize:'',reason:'',missedCalls:'',jobValue:'',urgency:'',decisionMaker:false,callbackTime:'',email:'',interest:'',notes:'',score:30,temperature:'cold'}};}
+function initialSession(callSid,from,to){return{version:2,callSid,from,to,createdAt:new Date().toISOString(),turns:0,history:[],lead:{name:'',company:'',industry:'',location:'',teamSize:'',reason:'',missedCalls:'',jobValue:'',urgency:'',decisionMaker:false,callbackTime:'',email:'',interest:'',notes:'',score:30,temperature:'cold'}};}
 
-export async function emitLead(session,reason='turn'){
+async function emitLead(session,reason='turn'){
   const payload={event:'voice_lead_update',reason,timestamp:new Date().toISOString(),callSid:session.callSid,from:session.from,to:session.to,createdAt:session.createdAt,turns:session.turns,lead:session.lead,history:session.history};
   const webhook=process.env.CALMCALL_CRM_WEBHOOK_URL;
   if(webhook){try{await fetch(webhook,{method:'POST',headers:{'Content-Type':'application/json','x-calmcall-event':'voice_lead_update'},body:JSON.stringify(payload)});}catch(err){console.error('CRM webhook failed:',err);}}
   try{await put(`twilio-leads/${session.callSid || crypto.randomUUID()}.json`,Buffer.from(encryptSession(payload)),{access:'public',contentType:'text/plain',allowOverwrite:true});}catch(err){console.error('Lead archive failed:',err);}
 }
 
-export function validateTwilioRequest(req){
+function validateTwilioRequest(req){
   const token=process.env.TWILIO_AUTH_TOKEN;
   if(!token || process.env.TWILIO_VALIDATE_SIGNATURE==='false')return true;
   const signature=req.headers?.['x-twilio-signature']; if(!signature)return false;
@@ -211,10 +213,35 @@ export function validateTwilioRequest(req){
   return crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected));
 }
 
-export async function sendSms(to,body){
+async function sendSms(to,body){
   if(!to||!process.env.TWILIO_ACCOUNT_SID||!process.env.TWILIO_AUTH_TOKEN||!process.env.TWILIO_PHONE_NUMBER)return false;
   const auth=Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
   const params=new URLSearchParams({To:to,From:process.env.TWILIO_PHONE_NUMBER,Body:body.slice(0,1500)});
   const response=await fetch(`https://api.twilio.com/2010-04-01/Accounts/${process.env.TWILIO_ACCOUNT_SID}/Messages.json`,{method:'POST',headers:{Authorization:`Basic ${auth}`,'Content-Type':'application/x-www-form-urlencoded'},body:params});
   if(!response.ok)throw new Error(`Twilio SMS ${response.status}`); return true;
 }
+
+module.exports = {
+  BASE_URL,
+  TRADE_INFO,
+  matchTrade,
+  encryptSession,
+  decryptSession,
+  sessionId,
+  saveSession,
+  loadSession,
+  cleanText,
+  escapeXml,
+  normalizeSpeech,
+  addHistory,
+  askDarren,
+  withTimeout,
+  synthesizeSpeech,
+  audioUrlFor,
+  createDynamicAudio,
+  twimlForTurn,
+  initialSession,
+  emitLead,
+  validateTwilioRequest,
+  sendSms,
+};
