@@ -16,14 +16,24 @@ import {
   validateTwilioRequest,
 } from './_darren.js';
 
-const GREETING = "Hi, Darren here from CalmCall. Who've I got the pleasure of speaking with?";
+const GREETING = "Hi, Darren from CalmCall. What can I help you with?";
 const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
 const FALLBACK = "No worries. I'm having a bit of trouble with my brain at the minute. Could I take your name and get someone from CalmCall to give you a ring back?";
 
 function query(req, key) { return req.query && req.query[key] ? String(req.query[key]) : ''; }
-function callbackActionUrl(id) { return `${BASE_URL}?session=${encodeURIComponent(id)}`; }
 
-async function makeTurnResponse(res, sessionIdValue, session, reply, action) {
+// Keep every Gather callback on the SAME deployment that handled the current turn.
+// Using BASE_URL here sent Preview calls back to Production, which is why later
+// turns could silently switch to the old Darren.
+function callbackActionUrl(req, id) {
+  const proto = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = req.headers?.host;
+  const path = String(req.url || '/api/twilio/voice').split('?')[0];
+  if (host) return `${proto}://${host}${path}?session=${encodeURIComponent(id)}`;
+  return `${BASE_URL}?session=${encodeURIComponent(id)}`;
+}
+
+async function makeTurnResponse(res, req, sessionIdValue, session, reply, action) {
   const safeReply = String(reply || RETRY).trim().slice(0, 1200);
   let audioUrl = null;
   try { audioUrl = await createDynamicAudio(safeReply); } catch (err) { console.error('Darren TTS failed, using Polly fallback:', err); }
@@ -32,7 +42,7 @@ async function makeTurnResponse(res, sessionIdValue, session, reply, action) {
   if (shouldEnd) await emitLead(session, 'call_end');
 
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
-  const actionUrl = callbackActionUrl(sessionIdValue);
+  const actionUrl = callbackActionUrl(req, sessionIdValue);
   const twiml = twimlForTurn({
     text: safeReply,
     audioUrl,
@@ -86,9 +96,9 @@ export default async function handler(req, res) {
       if (session.turns === 0 && session.history.length === 0) {
         addHistory(session, 'darren', GREETING);
         await saveSession(id, session);
-        return makeTurnResponse(res, id, session, GREETING, 'continue');
+        return makeTurnResponse(res, req, id, session, GREETING, 'continue');
       }
-      return makeTurnResponse(res, id, session, RETRY, 'continue');
+      return makeTurnResponse(res, req, id, session, RETRY, 'continue');
     }
 
     session.turns += 1;
@@ -123,7 +133,7 @@ export default async function handler(req, res) {
 
     await saveSession(id, session);
     await emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn');
-    return makeTurnResponse(res, id, session, result.reply, result.action);
+    return makeTurnResponse(res, req, id, session, result.reply, result.action);
   } catch (err) {
     console.error('Darren voice webhook failed:', err);
     const fallback = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">${escapeXml(FALLBACK)}</Say><Hangup/></Response>`;
