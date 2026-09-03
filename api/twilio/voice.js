@@ -32,13 +32,26 @@ async function makeTurnResponse(res, sessionIdValue, session, reply, action) {
   if (shouldEnd) await emitLead(session, 'call_end');
 
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
+  const actionUrl = callbackActionUrl(sessionIdValue);
   const twiml = twimlForTurn({
     text: safeReply,
     audioUrl,
-    actionUrl: callbackActionUrl(sessionIdValue),
+    actionUrl,
     hangup: shouldEnd,
     handoffNumber,
   });
+  // TEMPORARY DIAGNOSTIC (Darren V2 64KB TwiML investigation) - safe to remove after root cause is confirmed.
+  // Logs only structural sizes/URLs, never env vars, keys, tokens, secrets, or request bodies.
+  console.log('[DARREN_DIAG]', JSON.stringify({
+    twimlByteLength: Buffer.byteLength(twiml, 'utf8'),
+    twimlLength: twiml.length,
+    audioUrl: audioUrl || null,
+    audioUrlLength: audioUrl ? audioUrl.length : 0,
+    safeReplyLength: safeReply.length,
+    actionUrl,
+    actionUrlLength: actionUrl.length,
+    twimlPreview: twiml.slice(0, 500),
+  }));
   return res.status(200).send(twiml);
 }
 
