@@ -3,6 +3,7 @@ import {
   addHistory,
   askDarren,
   emitLead,
+  ensureParsedBody,
   escapeXml,
   initialSession,
   loadSession,
@@ -14,6 +15,11 @@ import {
   twimlForTurn,
   validateTwilioRequest,
 } from './_darren.js';
+
+// Signature validation needs req.body to be exactly the bytes Twilio sent. Disable Vercel's
+// automatic body parsing here so we can read and parse the raw body ourselves (ensureParsedBody)
+// before validateTwilioRequest runs, instead of trusting the platform's implicit parsing.
+export const config = { api: { bodyParser: false } };
 
 const GREETING = "Hi, you're through to Darren V2 at CalmCall. This is the new test line. What can I help you with?";
 const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
@@ -56,6 +62,13 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') {
     return res.status(405).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">Method not allowed.</Say><Hangup/></Response>');
+  }
+
+  try {
+    await ensureParsedBody(req);
+  } catch (err) {
+    console.error('Failed to read Twilio request body:', err);
+    return res.status(400).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">Bad request.</Say><Hangup/></Response>');
   }
 
   if (!validateTwilioRequest(req)) {
