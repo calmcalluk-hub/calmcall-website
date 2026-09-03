@@ -281,61 +281,54 @@ async function emitLead(session,reason='turn'){
   try{await put(`twilio-leads/${session.callSid || crypto.randomUUID()}.json`,Buffer.from(encryptSession(payload)),{access:'public',contentType:'text/plain',allowOverwrite:true});}catch(err){console.error('Lead archive failed:',err);}
 }
 
-// TEMPORARY DIAGNOSTIC (Twilio signature mismatch investigation on darren-v2 Preview) -
-// logs only non-secret shape/comparison data on validation FAILURE, never on success, and
-// never logs TWILIO_AUTH_TOKEN, the Vercel bypass secret's value, request bodies, or caller
-// info. Safe to remove once the mismatch is root-caused. Does not alter the signature
-// calculation, does not bypass or accept the request.
-function redactBypassSecret(value){
-  return String(value || '').replace(/(x-vercel-protection-bypass=)[^&]*/i, '$1[REDACTED]');
+// Twilio's X-Twilio-Signature is an HMAC-SHA1 over the exact webhook URL plus the exact POST
+// body Twilio sent (sorted param names, each followed immediately by its value, appended to the
+// URL). Relying on the platform's automatic req.body parsing for that is what made validation on
+// darren-v2 Preview unreliable: by the time our handler ran, req.body wasn't guaranteed to hold
+// the same bytes Twilio's own signature was computed over. Root cause confirmed via temporary
+// diagnostic logging: the reconstructed URL matched Twilio's request and Twilio's console
+// configuration exactly (byte-for-byte), yet the computed signature still didn't match the
+// received one - so the remaining variable was the POST parameters, not the URL. Reading and
+// parsing the raw body ourselves (see api.bodyParser:false in voice.js) removes that variable:
+// req.body is now built from exactly the bytes Twilio sent, nothing else.
+function readRawBody(req){
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    req.on('data', (chunk) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
+async function ensureParsedBody(req){
+  // If some layer already parsed it into an object (e.g. bodyParser wasn't disabled for this
+  // route), trust that rather than trying to re-read an already-consumed stream.
+  if (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
+  const raw = typeof req.body === 'string' ? req.body
+    : Buffer.isBuffer(req.body) ? req.body.toString('utf8')
+    : await readRawBody(req);
+  const contentType = String(req.headers?.['content-type'] || '');
+  const params = {};
+  if (contentType.includes('application/json')) {
+    try { Object.assign(params, JSON.parse(raw || '{}')); } catch (_) { /* leave params empty */ }
+  } else {
+    // Twilio sends application/x-www-form-urlencoded; treat that as the default.
+    for (const [key, value] of new URLSearchParams(raw)) params[key] = value;
+  }
+  req.body = params;
+  return params;
 }
 
 function validateTwilioRequest(req){
   const token=process.env.TWILIO_AUTH_TOKEN;
   if(!token || process.env.TWILIO_VALIDATE_SIGNATURE==='false')return true;
-  const signature=req.headers?.['x-twilio-signature'];
-  const proto=req.headers?.['x-forwarded-proto'] || 'https';
-  const host=req.headers?.host;
-  const forwardedHost=req.headers?.['x-forwarded-host'];
-  const url=`${proto}://${host}${req.url || ''}`;
-  if(!signature){
-    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
-      reason: 'missing_signature_header',
-      reqUrl: redactBypassSecret(req.url),
-      reconstructedUrl: redactBypassSecret(url),
-      host: host || null,
-      proto,
-      forwardedHost: forwardedHost || null,
-    }));
-    return false;
-  }
-  if(!host){
-    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
-      reason: 'missing_host_header',
-      reqUrl: redactBypassSecret(req.url),
-      proto,
-      forwardedHost: forwardedHost || null,
-    }));
-    return false;
-  }
-  const params=req.body || {};
+  const signature=req.headers?.['x-twilio-signature']; if(!signature)return false;
+  const proto=req.headers?.['x-forwarded-proto'] || 'https'; const host=req.headers?.host; if(!host)return false;
+  const url=`${proto}://${host}${req.url || ''}`; const params=req.body || {};
   const data=Object.keys(params).sort().reduce((out,key)=>out+key+params[key],url);
   const expected=crypto.createHmac('sha1',token).update(data).digest('base64');
-  const lengthMatches=signature.length===expected.length;
-  const valid=lengthMatches && crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected));
-  if(!valid){
-    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
-      reason: lengthMatches ? 'signature_mismatch' : 'signature_length_mismatch',
-      reqUrl: redactBypassSecret(req.url),
-      reconstructedUrl: redactBypassSecret(url),
-      receivedSignature: signature,
-      computedSignature: expected,
-      host,
-      proto,
-      forwardedHost: forwardedHost || null,
-    }));
-  }
-  return valid;
+  if(signature.length!==expected.length)return false;
+  return crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected));
 }
 
 async function sendSms(to,body){
@@ -368,5 +361,6 @@ module.exports = {
   initialSession,
   emitLead,
   validateTwilioRequest,
+  ensureParsedBody,
   sendSms,
 };
