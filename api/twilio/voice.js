@@ -43,13 +43,30 @@ async function makeTurnResponse(res, req, sessionIdValue, session, reply, action
 
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
   const actionUrl = callbackActionUrl(req, sessionIdValue);
-  const twiml = twimlForTurn({
+  let twiml = twimlForTurn({
     text: safeReply,
     audioUrl,
     actionUrl,
     hangup: shouldEnd,
     handoffNumber,
   });
+
+  // Twilio rejects oversized TwiML responses. If an upstream URL or generated
+  // payload ever becomes unexpectedly large, keep the call alive with Polly
+  // rather than letting Twilio invoke the Production fallback.
+  const twimlByteLength = Buffer.byteLength(twiml, 'utf8');
+  if (twimlByteLength > 60000) {
+    console.warn('[DARREN_DIAG] TwiML over safety limit, falling back to Polly', JSON.stringify({ twimlByteLength, audioUrlLength: audioUrl ? audioUrl.length : 0 }));
+    audioUrl = null;
+    twiml = twimlForTurn({
+      text: safeReply,
+      audioUrl: null,
+      actionUrl,
+      hangup: shouldEnd,
+      handoffNumber,
+    });
+  }
+
   // TEMPORARY DIAGNOSTIC (Darren V2 64KB TwiML investigation) - safe to remove after root cause is confirmed.
   // Logs only structural sizes/URLs, never env vars, keys, tokens, secrets, or request bodies.
   console.log('[DARREN_DIAG]', JSON.stringify({
