@@ -25,8 +25,15 @@ function callbackActionUrl(req, id) {
   const proto = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const host = req.headers?.host;
   const path = String(req.url || '/api/twilio/voice').split('?')[0];
-  if (host) return `${proto}://${host}${path}?session=${encodeURIComponent(id)}`;
-  return `${BASE_URL}?session=${encodeURIComponent(id)}`;
+  // Preview deployments sit behind Vercel Authentication. Without this, Twilio's follow-up
+  // <Gather> callback gets Vercel's login-challenge page instead of our TwiML (looks like an
+  // oversized/64KB response), and Twilio silently falls back to the production number.
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const bypassParams = bypassSecret
+    ? `&x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}&x-vercel-set-bypass-cookie=true`
+    : '';
+  if (host) return `${proto}://${host}${path}?session=${encodeURIComponent(id)}${bypassParams}`;
+  return `${BASE_URL}?session=${encodeURIComponent(id)}${bypassParams}`;
 }
 
 async function makeTurnResponse(res, req, sessionIdValue, session, reply, action) {
