@@ -281,16 +281,61 @@ async function emitLead(session,reason='turn'){
   try{await put(`twilio-leads/${session.callSid || crypto.randomUUID()}.json`,Buffer.from(encryptSession(payload)),{access:'public',contentType:'text/plain',allowOverwrite:true});}catch(err){console.error('Lead archive failed:',err);}
 }
 
+// TEMPORARY DIAGNOSTIC (Twilio signature mismatch investigation on darren-v2 Preview) -
+// logs only non-secret shape/comparison data on validation FAILURE, never on success, and
+// never logs TWILIO_AUTH_TOKEN, the Vercel bypass secret's value, request bodies, or caller
+// info. Safe to remove once the mismatch is root-caused. Does not alter the signature
+// calculation, does not bypass or accept the request.
+function redactBypassSecret(value){
+  return String(value || '').replace(/(x-vercel-protection-bypass=)[^&]*/i, '$1[REDACTED]');
+}
+
 function validateTwilioRequest(req){
   const token=process.env.TWILIO_AUTH_TOKEN;
   if(!token || process.env.TWILIO_VALIDATE_SIGNATURE==='false')return true;
-  const signature=req.headers?.['x-twilio-signature']; if(!signature)return false;
-  const proto=req.headers?.['x-forwarded-proto'] || 'https'; const host=req.headers?.host; if(!host)return false;
-  const url=`${proto}://${host}${req.url || ''}`; const params=req.body || {};
+  const signature=req.headers?.['x-twilio-signature'];
+  const proto=req.headers?.['x-forwarded-proto'] || 'https';
+  const host=req.headers?.host;
+  const forwardedHost=req.headers?.['x-forwarded-host'];
+  const url=`${proto}://${host}${req.url || ''}`;
+  if(!signature){
+    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
+      reason: 'missing_signature_header',
+      reqUrl: redactBypassSecret(req.url),
+      reconstructedUrl: redactBypassSecret(url),
+      host: host || null,
+      proto,
+      forwardedHost: forwardedHost || null,
+    }));
+    return false;
+  }
+  if(!host){
+    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
+      reason: 'missing_host_header',
+      reqUrl: redactBypassSecret(req.url),
+      proto,
+      forwardedHost: forwardedHost || null,
+    }));
+    return false;
+  }
+  const params=req.body || {};
   const data=Object.keys(params).sort().reduce((out,key)=>out+key+params[key],url);
   const expected=crypto.createHmac('sha1',token).update(data).digest('base64');
-  if(signature.length!==expected.length)return false;
-  return crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected));
+  const lengthMatches=signature.length===expected.length;
+  const valid=lengthMatches && crypto.timingSafeEqual(Buffer.from(signature),Buffer.from(expected));
+  if(!valid){
+    console.log('[TWILIO_SIG_DIAG]', JSON.stringify({
+      reason: lengthMatches ? 'signature_mismatch' : 'signature_length_mismatch',
+      reqUrl: redactBypassSecret(req.url),
+      reconstructedUrl: redactBypassSecret(url),
+      receivedSignature: signature,
+      computedSignature: expected,
+      host,
+      proto,
+      forwardedHost: forwardedHost || null,
+    }));
+  }
+  return valid;
 }
 
 async function sendSms(to,body){
