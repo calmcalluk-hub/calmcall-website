@@ -320,9 +320,17 @@ async function ensureParsedBody(req){
 }
 
 function validateTwilioRequest(req){
-  const token=process.env.TWILIO_AUTH_TOKEN;
+  // TWILIO_AUTH_TOKEN is stored in Vercel as a "Secret" env var, which cannot be read back and
+  // diffed once saved. A stray trailing newline or space picked up when the value was copy-pasted
+  // into the dashboard is invisible in the UI but silently changes the HMAC key, producing exactly
+  // the symptom seen on darren-v2: a permanent signature mismatch despite a byte-identical URL and
+  // a byte-identical, correctly-sorted parameter set (verified against a real failed call - Call
+  // SID CA2260383aec8a02baad76ef22f0da6a82 - via the Twilio Request Inspector and Vercel Runtime
+  // Logs). trim() removes that one hard-to-detect failure mode; it does not change the token for
+  // any correctly-stored value.
+  const token=String(process.env.TWILIO_AUTH_TOKEN||'').trim();
   if(!token || process.env.TWILIO_VALIDATE_SIGNATURE==='false')return true;
-  const signature=req.headers?.['x-twilio-signature']; if(!signature)return false;
+  const signature=String(req.headers?.['x-twilio-signature']||'').trim(); if(!signature)return false;
   const proto=req.headers?.['x-forwarded-proto'] || 'https'; const host=req.headers?.host; if(!host)return false;
   const url=`${proto}://${host}${req.url || ''}`; const params=req.body || {};
   const data=Object.keys(params).sort().reduce((out,key)=>out+key+params[key],url);
