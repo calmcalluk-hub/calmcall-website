@@ -15,15 +15,12 @@ import {
   validateTwilioRequest,
 } from './_darren.js';
 
-const GREETING = "Hi, Darren from CalmCall. What can I help you with?";
+const GREETING = "Hi, you're through to Darren V2 at CalmCall. This is the new test line. What can I help you with?";
 const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
-const FALLBACK = "No worries. I'm having a bit of trouble with my brain at the minute. Could I take your name and get someone from CalmCall to give you a ring back?";
+const FALLBACK = "Sorry mate, I'm having a bit of trouble at the minute. I'll get someone from CalmCall to give you a ring back.";
 
 function query(req, key) { return req.query && req.query[key] ? String(req.query[key]) : ''; }
 
-// Keep every Gather callback on the SAME deployment that handled the current turn.
-// Using BASE_URL here sent Preview calls back to Production, which is why later
-// turns could silently switch to the old Darren.
 function callbackActionUrl(req, id) {
   const proto = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const host = req.headers?.host;
@@ -33,38 +30,14 @@ function callbackActionUrl(req, id) {
 }
 
 async function makeTurnResponse(res, req, sessionIdValue, session, reply, action) {
-  const startedAt = Date.now();
   const safeReply = String(reply || RETRY).trim().slice(0, 1200);
   const shouldEnd = action === 'end_call';
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
   const actionUrl = callbackActionUrl(req, sessionIdValue);
 
-  // IMPORTANT: do not call ElevenLabs here. This webhook must return TwiML quickly.
-  // Generating MP3 + uploading it to Blob added avoidable latency and could make
-  // Twilio fail the webhook before it ever heard Darren V2.
-  const twiml = twimlForTurn({
-    text: safeReply,
-    audioUrl: null,
-    actionUrl,
-    hangup: shouldEnd,
-    handoffNumber,
-  });
-
-  const twimlByteLength = Buffer.byteLength(twiml, 'utf8');
-  console.log('[DARREN_DIAG]', JSON.stringify({
-    elapsedMs: Date.now() - startedAt,
-    twimlByteLength,
-    twimlLength: twiml.length,
-    safeReplyLength: safeReply.length,
-    actionUrl,
-    actionUrlLength: actionUrl.length,
-    twimlPreview: twiml.slice(0, 500),
-  }));
-
-  if (twimlByteLength > 60000) {
-    console.error('[DARREN_DIAG] TwiML unexpectedly exceeds 60KB', JSON.stringify({ twimlByteLength }));
-  }
-
+  // Keep the Twilio webhook fast. ElevenLabs audio belongs in the later streaming build.
+  const twiml = twimlForTurn({ text: safeReply, audioUrl: null, actionUrl, hangup: shouldEnd, handoffNumber });
+  console.log('[DARREN_V2]', JSON.stringify({ version: 'v2-fast-test', replyLength: safeReply.length, twimlBytes: Buffer.byteLength(twiml, 'utf8'), actionUrl }));
   return res.status(200).send(twiml);
 }
 
@@ -135,12 +108,7 @@ export default async function handler(req, res) {
     }
 
     await saveSession(id, session);
-
-    // Do not make CRM/lead archiving part of the critical Twilio response path.
-    // The call should hear Darren as soon as the session is saved.
-    const leadEvent = result.action === 'end_call' ? 'call_end' : 'turn';
-    void emitLead(session, leadEvent).catch((err) => console.error('Lead emit failed:', err));
-
+    void emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn').catch((err) => console.error('Lead emit failed:', err));
     return makeTurnResponse(res, req, id, session, result.reply, result.action);
   } catch (err) {
     console.error('Darren voice webhook failed:', err);
