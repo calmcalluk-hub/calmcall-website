@@ -26,11 +26,14 @@ function callbackActionUrl(req, id) {
   const host = req.headers?.host;
   const path = String(req.url || '/api/twilio/voice').split('?')[0];
   // Preview deployments sit behind Vercel Authentication. Without this, Twilio's follow-up
-  // <Gather> callback gets Vercel's login-challenge page instead of our TwiML (looks like an
-  // oversized/64KB response), and Twilio silently falls back to the production number.
+  // <Gather> callback gets Vercel's login-challenge page instead of our TwiML, and Twilio
+  // silently falls back to the production number. NOTE: do not add x-vercel-set-bypass-cookie
+  // here - that flag makes Vercel respond with a redirect to vercel.com/login instead of the
+  // bypassed content for a first-touch, non-browser client like Twilio (verified against the
+  // live deployment). The bare bypass secret alone works and is all we need.
   const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   const bypassParams = bypassSecret
-    ? `&x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}&x-vercel-set-bypass-cookie=true`
+    ? `&x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}`
     : '';
   if (host) return `${proto}://${host}${path}?session=${encodeURIComponent(id)}${bypassParams}`;
   return `${BASE_URL}?session=${encodeURIComponent(id)}${bypassParams}`;
