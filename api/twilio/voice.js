@@ -2,7 +2,6 @@ import {
   BASE_URL,
   addHistory,
   askDarren,
-  createDynamicAudio,
   emitLead,
   escapeXml,
   initialSession,
@@ -34,51 +33,38 @@ function callbackActionUrl(req, id) {
 }
 
 async function makeTurnResponse(res, req, sessionIdValue, session, reply, action) {
+  const startedAt = Date.now();
   const safeReply = String(reply || RETRY).trim().slice(0, 1200);
-  let audioUrl = null;
-  try { audioUrl = await createDynamicAudio(safeReply); } catch (err) { console.error('Darren TTS failed, using Polly fallback:', err); }
-
   const shouldEnd = action === 'end_call';
-  if (shouldEnd) await emitLead(session, 'call_end');
-
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
   const actionUrl = callbackActionUrl(req, sessionIdValue);
-  let twiml = twimlForTurn({
+
+  // IMPORTANT: do not call ElevenLabs here. This webhook must return TwiML quickly.
+  // Generating MP3 + uploading it to Blob added avoidable latency and could make
+  // Twilio fail the webhook before it ever heard Darren V2.
+  const twiml = twimlForTurn({
     text: safeReply,
-    audioUrl,
+    audioUrl: null,
     actionUrl,
     hangup: shouldEnd,
     handoffNumber,
   });
 
-  // Twilio rejects oversized TwiML responses. If an upstream URL or generated
-  // payload ever becomes unexpectedly large, keep the call alive with Polly
-  // rather than letting Twilio invoke the Production fallback.
   const twimlByteLength = Buffer.byteLength(twiml, 'utf8');
-  if (twimlByteLength > 60000) {
-    console.warn('[DARREN_DIAG] TwiML over safety limit, falling back to Polly', JSON.stringify({ twimlByteLength, audioUrlLength: audioUrl ? audioUrl.length : 0 }));
-    audioUrl = null;
-    twiml = twimlForTurn({
-      text: safeReply,
-      audioUrl: null,
-      actionUrl,
-      hangup: shouldEnd,
-      handoffNumber,
-    });
-  }
-
-  // TEMPORARY DIAGNOSTIC (Darren V2 64KB TwiML investigation) - safe to remove after root cause is confirmed.
-  // Logs only structural sizes/URLs, never env vars, keys, tokens, secrets, or request bodies.
   console.log('[DARREN_DIAG]', JSON.stringify({
-    twimlByteLength: Buffer.byteLength(twiml, 'utf8'),
+    elapsedMs: Date.now() - startedAt,
+    twimlByteLength,
     twimlLength: twiml.length,
-    audioUrl: audioUrl || null,
-    audioUrlLength: audioUrl ? audioUrl.length : 0,
     safeReplyLength: safeReply.length,
     actionUrl,
     actionUrlLength: actionUrl.length,
     twimlPreview: twiml.slice(0, 500),
   }));
+
+  if (twimlByteLength > 60000) {
+    console.error('[DARREN_DIAG] TwiML unexpectedly exceeds 60KB', JSON.stringify({ twimlByteLength }));
+  }
+
   return res.status(200).send(twiml);
 }
 
@@ -86,11 +72,11 @@ export default async function handler(req, res) {
   res.setHeader('Content-Type', 'text/xml; charset=utf-8');
 
   if (req.method !== 'POST') {
-    return res.status(405).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">Method not allowed.</Say><Hangup/></Response>');
+    return res.status(405).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">Method not allowed.</Say><Hangup/></Response>');
   }
 
   if (!validateTwilioRequest(req)) {
-    return res.status(403).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">Request not authorised.</Say><Hangup/></Response>');
+    return res.status(403).send('<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">Request not authorised.</Say><Hangup/></Response>');
   }
 
   const callSid = String(req.body?.CallSid || '');
@@ -149,11 +135,16 @@ export default async function handler(req, res) {
     }
 
     await saveSession(id, session);
-    await emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn');
+
+    // Do not make CRM/lead archiving part of the critical Twilio response path.
+    // The call should hear Darren as soon as the session is saved.
+    const leadEvent = result.action === 'end_call' ? 'call_end' : 'turn';
+    void emitLead(session, leadEvent).catch((err) => console.error('Lead emit failed:', err));
+
     return makeTurnResponse(res, req, id, session, result.reply, result.action);
   } catch (err) {
     console.error('Darren voice webhook failed:', err);
-    const fallback = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Amy">${escapeXml(FALLBACK)}</Say><Hangup/></Response>`;
+    const fallback = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">${escapeXml(FALLBACK)}</Say><Hangup/></Response>`;
     return res.status(200).send(fallback);
   }
 }
