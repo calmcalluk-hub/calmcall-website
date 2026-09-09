@@ -26,18 +26,13 @@ const GREETING = "Hi, you're through to Darren V2 at CalmCall. This is the new t
 const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
 const FALLBACK = "Sorry mate, I'm having a bit of trouble at the minute. I'll get someone from CalmCall to give you a ring back.";
 
-// Twilio hard-caps voice webhook requests at 15s (see Twilio's Webhooks Connection Overrides
-// docs) and will fall back to the production number if we blow past that. WEBHOOK_BUDGET_MS is
-// the slice of that 15s we're willing to spend in total before we must have replied; the ~3s
-// gap below 15000 covers network transit and response write time we don't directly control.
-// Every turn computes how much of that budget is already gone (GPT's own call can take up to
-// 9s) and only attempts ElevenLabs with whatever's left, capped at MAX_TTS_TIMEOUT_MS so one
-// turn can't hog the whole budget. Below MIN_TTS_BUDGET_MS remaining, we skip the attempt
-// entirely and go straight to the Polly fallback rather than risk the timeout - this is the
-// "redesign, don't just raise the timeout" approach.
+// Keep a hard response budget below Twilio's webhook limit. The key optimisation is that
+// session persistence and ElevenLabs synthesis now start at the same time. Previously Darren
+// waited for Blob storage to finish before even starting TTS, adding an avoidable network hop to
+// every turn. TTS is deliberately bounded so a slow synthesis never makes the caller wait forever.
 const WEBHOOK_BUDGET_MS = 12000;
 const MIN_TTS_BUDGET_MS = 1500;
-const MAX_TTS_TIMEOUT_MS = 6000;
+const MAX_TTS_TIMEOUT_MS = 4500;
 const TTS_SAFETY_MARGIN_MS = 300;
 
 function query(req, key) { return req.query && req.query[key] ? String(req.query[key]) : ''; }
@@ -50,8 +45,8 @@ function callbackActionUrl(req, id) {
   // <Gather> callback gets Vercel's login-challenge page instead of our TwiML, and Twilio
   // silently falls back to the production number. NOTE: do not add x-vercel-set-bypass-cookie
   // here - that flag makes Vercel respond with a redirect to vercel.com/login instead of the
-  // bypassed content for a first-touch, non-browser client like Twilio (verified against the
-  // live deployment). The bare bypass secret alone works and is all we need.
+  // bypassed content for a first-touch, non-browser client like Twilio. The bare bypass secret
+  // alone works and is all we need.
   const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
   const bypassParams = bypassSecret
     ? `&x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}`
@@ -60,39 +55,36 @@ function callbackActionUrl(req, id) {
   return `${BASE_URL}?session=${encodeURIComponent(id)}${bypassParams}`;
 }
 
-async function makeTurnResponse(res, req, sessionIdValue, session, reply, action, requestStartedAt) {
+async function makeTurnResponse(res, req, sessionIdValue, session, reply, action, requestStartedAt, sessionSavePromise) {
   const safeReply = String(reply || RETRY).trim().slice(0, 1200);
   const shouldEnd = action === 'end_call';
   const handoffNumber = action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '';
   const actionUrl = callbackActionUrl(req, sessionIdValue);
 
-  // Darren speaks in his ElevenLabs voice whenever enough of the Twilio timeout budget remains
-  // to generate (or fetch a cached copy of) the audio; otherwise this falls straight back to
-  // Polly instead of risking Twilio timing the call out. audioUrlFor() already caches by a hash
-  // of the text in Vercel Blob, so the constant GREETING/RETRY strings are a fast head() hit
-  // after the very first call ever makes them, not a fresh ElevenLabs request each time.
-  let audioUrl = null;
+  // Start persistence and TTS together. Twilio cannot receive the response until the session is
+  // safely saved, but there is no reason to make the ElevenLabs request wait for that save.
+  let audioPromise = Promise.resolve(null);
   const remaining = WEBHOOK_BUDGET_MS - (Date.now() - requestStartedAt);
   if (remaining >= MIN_TTS_BUDGET_MS) {
     const ttsTimeout = Math.min(MAX_TTS_TIMEOUT_MS, remaining - TTS_SAFETY_MARGIN_MS);
-    try {
-      audioUrl = await Promise.race([
-        createDynamicAudio(safeReply, ttsTimeout),
-        new Promise((resolve) => setTimeout(() => resolve(null), ttsTimeout + 500)),
-      ]);
-    } catch (err) {
+    audioPromise = Promise.race([
+      createDynamicAudio(safeReply, ttsTimeout),
+      new Promise((resolve) => setTimeout(() => resolve(null), ttsTimeout + 250)),
+    ]).catch((err) => {
       console.error('Darren ElevenLabs synthesis failed, using Polly fallback:', err);
-      audioUrl = null;
-    }
+      return null;
+    });
   }
+
+  const [audioUrl] = await Promise.all([
+    audioPromise,
+    sessionSavePromise || Promise.resolve(),
+  ]);
 
   let twiml = twimlForTurn({ text: safeReply, audioUrl, actionUrl, hangup: shouldEnd, handoffNumber });
   let twimlBytes = Buffer.byteLength(twiml, 'utf8');
   if (twimlBytes > 60000) {
-    // Defensive: a <Play> response is inherently tiny, but keep the size guard from the
-    // original implementation in case audioUrl or actionUrl are ever unexpectedly huge.
     console.error('[DARREN_V2] TwiML exceeded safety threshold, forcing Polly fallback', { twimlBytes });
-    audioUrl = null;
     twiml = twimlForTurn({ text: safeReply, audioUrl: null, actionUrl, hangup: shouldEnd, handoffNumber });
     twimlBytes = Buffer.byteLength(twiml, 'utf8');
   }
@@ -138,8 +130,8 @@ export default async function handler(req, res) {
     if (!speech) {
       if (session.turns === 0 && session.history.length === 0) {
         addHistory(session, 'darren', GREETING);
-        await saveSession(id, session);
-        return makeTurnResponse(res, req, id, session, GREETING, 'continue', requestStartedAt);
+        const savePromise = saveSession(id, session);
+        return makeTurnResponse(res, req, id, session, GREETING, 'continue', requestStartedAt, savePromise);
       }
       return makeTurnResponse(res, req, id, session, RETRY, 'continue', requestStartedAt);
     }
@@ -170,13 +162,15 @@ export default async function handler(req, res) {
       const callbackTime = String(session.lead.callbackTime || '').trim();
       if (callbackTime) {
         const sms = `Hi${session.lead.name ? ` ${session.lead.name}` : ''}, Darren from CalmCall here. We've noted your request for a callback around ${callbackTime}. The team will follow up. Reply to this message if anything changes.`;
-        try { await sendSms(from, sms); } catch (err) { console.error('Callback SMS failed:', err); }
+        // SMS is post-turn side work. It must not hold up the voice response.
+        void sendSms(from, sms).catch((err) => console.error('Callback SMS failed:', err));
       }
     }
 
-    await saveSession(id, session);
+    // Start the Blob save at the same time as ElevenLabs synthesis inside makeTurnResponse.
+    const savePromise = saveSession(id, session);
     void emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn').catch((err) => console.error('Lead emit failed:', err));
-    return makeTurnResponse(res, req, id, session, result.reply, result.action, requestStartedAt);
+    return makeTurnResponse(res, req, id, session, result.reply, result.action, requestStartedAt, savePromise);
   } catch (err) {
     console.error('Darren voice webhook failed:', err);
     const fallback = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">${escapeXml(FALLBACK)}</Say><Hangup/></Response>`;
