@@ -1,214 +1,134 @@
-import { put, head } from '@vercel/blob';
+import {
+  BASE_URL,
+  addHistory,
+  createDynamicAudio,
+  emitLead,
+  ensureParsedBody,
+  escapeXml,
+  initialSession,
+  loadSession,
+  matchTrade,
+  normalizeSpeech,
+  saveSession,
+  sendSms,
+  sessionId,
+  twimlForTurn,
+  validateTwilioRequest,
+} from './_darren.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { askDarrenFast } = require('./_darren_fast.js');
 
-const TRADE_INFO = {
-  plumber: { label: 'plumbers', example: 'a burst pipe callout', value: 220 },
-  plumbing: { label: 'plumbers', example: 'a burst pipe callout', value: 220 },
-  mechanic: { label: 'mechanics', example: 'a brake job', value: 280 },
-  garage: { label: 'mechanics', example: 'a brake job', value: 280 },
-  electrician: { label: 'electricians', example: 'a fault call-out', value: 210 },
-  locksmith: { label: 'locksmiths', example: 'a lockout', value: 120 },
-  jeweller: { label: 'jewellers', example: 'a repair or valuation', value: 150 },
-  jewellery: { label: 'jewellers', example: 'a repair or valuation', value: 150 },
-  beauty: { label: 'beauty salons', example: 'a treatment booking', value: 65 },
-  salon: { label: 'salons', example: 'a treatment booking', value: 65 },
-  beautician: { label: 'beauticians', example: 'a treatment booking', value: 65 },
-  surveyor: { label: 'surveyors', example: 'a property survey', value: 350 },
-  barber: { label: 'barbers', example: 'a haircut booking', value: 35 },
-  hairdresser: { label: 'hairdressers', example: 'a haircut booking', value: 45 },
-  dentist: { label: 'dentists', example: 'a check-up', value: 150 },
-  veterinary: { label: 'vets', example: 'a pet consultation', value: 90 },
-  accountant: { label: 'accountants', example: 'a tax return', value: 220 },
-  solicitor: { label: 'solicitors', example: 'a legal consultation', value: 300 },
-  roofer: { label: 'roofers', example: 'a roof repair', value: 350 },
-  builder: { label: 'builders', example: 'a renovation quote', value: 450 },
-  decorator: { label: 'painters and decorators', example: 'a room repaint', value: 180 },
-  cleaner: { label: 'cleaning companies', example: 'a deep clean booking', value: 80 },
-  gardener: { label: 'gardeners', example: 'a garden clearance', value: 120 },
-  landscaper: { label: 'landscapers', example: 'a garden project', value: 300 },
-};
+export const config = { api: { bodyParser: false } };
 
-function matchTrade(speech) {
-  if (!speech) return null;
-  const text = speech.toLowerCase();
-  for (const keyword of Object.keys(TRADE_INFO)) {
-    if (text.includes(keyword)) return TRADE_INFO[keyword];
+const GREETING = "Hi, you're through to Darren V2 at CalmCall. What can I help you with?";
+const RETRY = "Sorry mate, I didn't quite catch that. Could you say that again?";
+const FALLBACK = "Sorry mate, I'm having a bit of trouble at the minute. I'll get someone from CalmCall to give you a ring back.";
+
+const WEBHOOK_BUDGET_MS = 12000;
+const MIN_TTS_BUDGET_MS = 1200;
+const MAX_TTS_TIMEOUT_MS = 3500;
+const TTS_SAFETY_MARGIN_MS = 200;
+
+function query(req, key) { return req.query && req.query[key] ? String(req.query[key]) : ''; }
+
+function callbackActionUrl(req, id) {
+  const proto = String(req.headers?.['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = req.headers?.host;
+  const path = String(req.url || '/api/twilio/voice').split('?')[0];
+  const bypassSecret = process.env.VERCEL_AUTOMATION_BYPASS_SECRET;
+  const bypassParams = bypassSecret ? `&x-vercel-protection-bypass=${encodeURIComponent(bypassSecret)}` : '';
+  if (host) return `${proto}://${host}${path}?session=${encodeURIComponent(id)}${bypassParams}`;
+  return `${BASE_URL}?session=${encodeURIComponent(id)}${bypassParams}`;
+}
+
+async function makeTurnResponse(res, req, id, session, reply, action, startedAt, savePromise) {
+  const safeReply = String(reply || RETRY).trim().slice(0, 700);
+  const actionUrl = callbackActionUrl(req, id);
+  const remaining = WEBHOOK_BUDGET_MS - (Date.now() - startedAt);
+  let audioPromise = Promise.resolve(null);
+  if (remaining >= MIN_TTS_BUDGET_MS) {
+    const timeout = Math.min(MAX_TTS_TIMEOUT_MS, remaining - TTS_SAFETY_MARGIN_MS);
+    audioPromise = Promise.race([
+      createDynamicAudio(safeReply, timeout),
+      new Promise(resolve => setTimeout(() => resolve(null), timeout + 150)),
+    ]).catch(err => {
+      console.error('ElevenLabs failed, using Polly:', err);
+      return null;
+    });
   }
-  return null;
-}
-
-function tradeKeyFor(trade) {
-  if (!trade) return 'generic';
-  return Object.keys(TRADE_INFO).find((k) => TRADE_INFO[k] === trade) || 'generic';
-}
-
-function escapeXml(str) {
-  return String(str).replace(/[<>&'"]/g, (c) => ({
-    '<': '&lt;', '>': '&gt;', '&': '&amp;', "'": '&apos;', '"': '&quot;',
-  }[c]));
-}
-
-async function withTimeout(fn, ms) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), ms);
-  try {
-    return await fn(controller.signal);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function synthesizeSpeech(text) {
-  const voiceId = process.env.ELEVENLABS_VOICE_ID;
-  const response = await withTimeout((signal) => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-    method: 'POST',
-    signal,
-    headers: {
-      'Content-Type': 'application/json',
-      'xi-api-key': process.env.ELEVENLABS_API_KEY,
-    },
-    body: JSON.stringify({
-      text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-    }),
-  }), 8000);
-
-  if (!response.ok) throw new Error(`ElevenLabs error ${response.status}`);
-  const arrayBuffer = await response.arrayBuffer();
-  return Buffer.from(arrayBuffer);
-}
-
-async function uploadAudio(buffer, fixedPath) {
-  const filename = fixedPath || `twilio-pitches/${Date.now()}-${Math.random().toString(36).slice(2)}.mp3`;
-  const blob = await put(filename, buffer, {
-    access: 'public',
-    contentType: 'audio/mpeg',
-    addRandomSuffix: !fixedPath,
-    allowOverwrite: !!fixedPath,
-  });
-  return blob.url;
-}
-
-async function getCachedAudioUrl(cacheKey, text) {
-  const path = `twilio-pitches/${cacheKey}.mp3`;
-  try {
-    const existing = await head(path);
-    return existing.url;
-  } catch (err) {
-    // Not cached yet - fall through and generate it below.
-  }
-  const buffer = await synthesizeSpeech(text);
-  return uploadAudio(buffer, path);
-}
-
-const BASE_URL = 'https://www.calmcall.co.uk/api/twilio/voice';
-const GREETING_TEXT = "Welcome to CalmCall. Please specify what business you're calling from.";
-const COMPANY_PROMPT = "Thank you. Could you tell me whether you're an independent business, or if you have multiple staff?";
-const SIZE_PROMPT = "Great, thank you. CalmCall gives you 24 hour lead generation, along with callback time management. Someone from CalmCall can call you back any time between 9 and 8. What time would suit you?";
-const RETRY_PROMPT = "Sorry, let's start again. What business are you calling from?";
-
-function lossLine(trade) {
-  if (!trade) {
-    return "Missed calls like this cost businesses money every single day. Can I take the name of your company?";
-  }
-  const label = trade.label.charAt(0).toUpperCase() + trade.label.slice(1);
-  return `${label} like yours typically lose around ${trade.value} pounds every time a call like ${trade.example} goes unanswered. Can I take the name of your company?`;
-}
-
-const TRADE_HINTS = Array.from(new Set(Object.values(TRADE_INFO).map((t) => t.label))).join(', ');
-
-function gatherTwiml(sayText, audioUrl, nextAction, hints) {
-  const voicePart = audioUrl
-    ? `<Play>${escapeXml(audioUrl)}</Play>`
-    : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
-  const hintsAttr = hints ? ` hints="${escapeXml(hints)}"` : '';
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  ${voicePart}
-  <Gather input="speech" action="${escapeXml(nextAction)}" method="POST" speechTimeout="1" speechModel="phone_call" language="en-GB"${hintsAttr} />
-  <Say voice="Polly.Amy">Sorry, we didn't catch that. Give us a call back any time.</Say>
-</Response>`;
-}
-
-function finalTwiml(sayText, audioUrl) {
-  const voicePart = audioUrl
-    ? `<Play>${escapeXml(audioUrl)}</Play>`
-    : `<Say voice="Polly.Amy">${escapeXml(sayText)}</Say>`;
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  ${voicePart}
-  <Hangup/>
-</Response>`;
-}
-
-async function cachedOrNull(cacheKey, text) {
-  try {
-    return await getCachedAudioUrl(cacheKey, text);
-  } catch (err) {
-    console.error(`AI voice failed for "${cacheKey}", falling back to canned message:`, err);
-    return null;
-  }
+  const [audioUrl] = await Promise.all([audioPromise, savePromise || Promise.resolve()]);
+  return res.status(200).send(twimlForTurn({
+    text: safeReply,
+    audioUrl,
+    actionUrl,
+    hangup: action === 'end_call',
+    handoffNumber: action === 'human_handoff' ? String(process.env.CALMCALL_HANDOFF_NUMBER || '') : '',
+  }));
 }
 
 export default async function handler(req, res) {
-  const speech = req.body && req.body.SpeechResult;
-  const step = (req.query && req.query.step) || '';
-  res.setHeader('Content-Type', 'text/xml');
+  const startedAt = Date.now();
+  res.setHeader('Content-Type', 'text/xml; charset=utf-8');
+  if (req.method !== 'POST') return res.status(405).send('<?xml version="1.0"?><Response><Say voice="Polly.Brian-Neural">Method not allowed.</Say><Hangup/></Response>');
+
+  try { await ensureParsedBody(req); }
+  catch (err) { console.error('Body read failed:', err); return res.status(400).send('<?xml version="1.0"?><Response><Say voice="Polly.Brian-Neural">Bad request.</Say><Hangup/></Response>'); }
+
+  if (!validateTwilioRequest(req)) return res.status(403).send('<?xml version="1.0"?><Response><Say voice="Polly.Brian-Neural">Request not authorised.</Say><Hangup/></Response>');
 
   try {
+    const callSid = String(req.body?.CallSid || '');
+    const from = String(req.body?.From || '');
+    const to = String(req.body?.To || '');
+    const speech = normalizeSpeech(req.body?.SpeechResult || '');
+    let id = query(req, 'session');
+    let session;
+
+    if (id) session = await loadSession(id);
+    else {
+      id = sessionId();
+      session = initialSession(callSid, from, to);
+      await saveSession(id, session);
+    }
+
     if (!speech) {
-      const audioUrl = await cachedOrNull('greeting', GREETING_TEXT);
-      const nextAction = `${BASE_URL}?step=trade`;
-      return res.status(200).send(gatherTwiml(GREETING_TEXT, audioUrl, nextAction, TRADE_HINTS));
-    }
-
-    if (step === 'trade') {
-      const trade = matchTrade(speech);
-      const tradeKey = tradeKeyFor(trade);
-      const text = lossLine(trade);
-      const audioUrl = await cachedOrNull(`loss-v2-${tradeKey}`, text);
-      const nextAction = `${BASE_URL}?step=company&trade=${encodeURIComponent(tradeKey)}`;
-      return res.status(200).send(gatherTwiml(text, audioUrl, nextAction));
-    }
-
-    if (step === 'company') {
-      const companyName = speech.trim();
-      const trade = (req.query && req.query.trade) || 'generic';
-      const audioUrl = await cachedOrNull('company-prompt', COMPANY_PROMPT);
-      const nextAction = `${BASE_URL}?step=size&trade=${encodeURIComponent(trade)}&company=${encodeURIComponent(companyName)}`;
-      return res.status(200).send(gatherTwiml(COMPANY_PROMPT, audioUrl, nextAction));
-    }
-
-    if (step === 'size') {
-      const sizeAnswer = speech.trim();
-      const trade = (req.query && req.query.trade) || 'generic';
-      const company = (req.query && req.query.company) || '';
-      const audioUrl = await cachedOrNull('size-prompt', SIZE_PROMPT);
-      const nextAction = `${BASE_URL}?step=time&trade=${encodeURIComponent(trade)}&company=${encodeURIComponent(company)}&size=${encodeURIComponent(sizeAnswer)}`;
-      return res.status(200).send(gatherTwiml(SIZE_PROMPT, audioUrl, nextAction));
-    }
-
-    if (step === 'time') {
-      const callbackTime = speech.trim();
-      const text = `Great, I've got your callback booked for ${callbackTime}. Thanks for calling CalmCall - head to calmcall dot co dot uk to find out more.`;
-      let audioUrl = null;
-      try {
-        const buffer = await synthesizeSpeech(text);
-        audioUrl = await uploadAudio(buffer);
-      } catch (err) {
-        console.error('Booking-confirmation AI voice failed, falling back to canned message:', err);
+      if (session.turns === 0 && session.history.length === 0) {
+        addHistory(session, 'darren', GREETING);
+        return makeTurnResponse(res, req, id, session, GREETING, 'continue', startedAt, saveSession(id, session));
       }
-      return res.status(200).send(finalTwiml(text, audioUrl));
+      return makeTurnResponse(res, req, id, session, RETRY, 'continue', startedAt);
     }
 
-    const nextAction = `${BASE_URL}?step=trade`;
-    return res.status(200).send(gatherTwiml(RETRY_PROMPT, null, nextAction));
+    session.turns += 1;
+    addHistory(session, 'caller', speech);
+    const obviousTrade = matchTrade(speech);
+    if (!session.lead.industry && obviousTrade) session.lead.industry = obviousTrade.label;
+
+    let result;
+    try {
+      result = await askDarrenFast(session, speech);
+    } catch (err) {
+      console.error('Darren fast AI decision failed:', err);
+      result = { reply: FALLBACK, intent: 'unknown', action: 'continue', lead: session.lead };
+    }
+
+    session.lead = { ...session.lead, ...(result.lead || {}) };
+    addHistory(session, 'darren', result.reply);
+
+    if (result.action === 'callback_requested') {
+      const callbackTime = String(session.lead.callbackTime || '').trim();
+      if (callbackTime) {
+        const sms = `Hi${session.lead.name ? ` ${session.lead.name}` : ''}, Darren from CalmCall here. We've noted your request for a callback around ${callbackTime}. The team will follow up.`;
+        void sendSms(from, sms).catch(err => console.error('SMS failed:', err));
+      }
+    }
+
+    const savePromise = saveSession(id, session);
+    void emitLead(session, result.action === 'end_call' ? 'call_end' : 'turn').catch(err => console.error('Lead emit failed:', err));
+    return makeTurnResponse(res, req, id, session, result.reply, result.action, startedAt, savePromise);
   } catch (err) {
-    console.error('Voice webhook failed entirely, falling back to canned message:', err);
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Say voice="Polly.Amy">Sorry, something went wrong. Please give us a call back any time.</Say>
-</Response>`;
-    return res.status(200).send(twiml);
+    console.error('Darren voice webhook failed:', err);
+    return res.status(200).send(`<?xml version="1.0"?><Response><Say voice="Polly.Brian-Neural" language="en-GB">${escapeXml(FALLBACK)}</Say><Hangup/></Response>`);
   }
 }
