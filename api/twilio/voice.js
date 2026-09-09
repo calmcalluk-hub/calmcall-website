@@ -1,6 +1,7 @@
 import {
   BASE_URL,
   addHistory,
+  askDarren,
   createDynamicAudio,
   emitLead,
   ensureParsedBody,
@@ -15,9 +16,6 @@ import {
   twimlForTurn,
   validateTwilioRequest,
 } from './_darren.js';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { askDarrenFast } = require('./_darren_fast.js');
 
 export const config = { api: { bodyParser: false } };
 
@@ -107,9 +105,9 @@ export default async function handler(req, res) {
 
     let result;
     try {
-      result = await askDarrenFast(session, speech);
+      result = await askDarren(session, speech);
     } catch (err) {
-      console.error('Darren fast AI decision failed:', err);
+      console.error('Darren AI decision failed:', err);
       result = { reply: FALLBACK, intent: 'unknown', action: 'continue', lead: session.lead };
     }
 
