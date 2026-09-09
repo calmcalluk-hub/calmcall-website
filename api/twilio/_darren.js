@@ -247,23 +247,26 @@ async function withTimeout(fn, ms) {
   try{return await fn(controller.signal);} finally{clearTimeout(timer);}
 }
 
-async function synthesizeSpeech(text) {
+async function synthesizeSpeech(text, timeoutMs = 7000) {
   const voiceId=process.env.ELEVENLABS_VOICE_ID;
   if(!voiceId || !process.env.ELEVENLABS_API_KEY) throw new Error('ElevenLabs environment variables are missing');
   const response=await withTimeout((signal)=>fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_22050_32`,{
     method:'POST',signal,headers:{'Content-Type':'application/json','xi-api-key':process.env.ELEVENLABS_API_KEY},
     body:JSON.stringify({text:cleanText(text,1200),model_id:process.env.ELEVENLABS_MODEL || 'eleven_flash_v2_5',voice_settings:{stability:0.42,similarity_boost:0.82,style:0.15,use_speaker_boost:true}})
-  }),7000);
+  }),timeoutMs);
   if(!response.ok) throw new Error(`ElevenLabs ${response.status}`);
   return Buffer.from(await response.arrayBuffer());
 }
 
-async function audioUrlFor(text, cacheKey) {
+async function audioUrlFor(text, cacheKey, timeoutMs = 7000) {
   const path=`twilio-pitches/${cacheKey}.mp3`;
   try{return (await head(path)).url;}catch(_){}
-  return (await put(path,await synthesizeSpeech(text),{access:'public',contentType:'audio/mpeg',allowOverwrite:true})).url;
+  return (await put(path,await synthesizeSpeech(text, timeoutMs),{access:'public',contentType:'audio/mpeg',allowOverwrite:true})).url;
 }
-async function createDynamicAudio(text){const hash=crypto.createHash('sha256').update(text).digest('hex').slice(0,32);return audioUrlFor(text,`darren-${hash}`);}
+// timeoutMs bounds only the ElevenLabs network call (via synthesizeSpeech's AbortController); the
+// Blob head()/put() calls above it aren't separately cancellable, which is why voice.js also wraps
+// the whole call in an outer Promise.race as a second, belt-and-braces guard on total wall time.
+async function createDynamicAudio(text, timeoutMs = 7000){const hash=crypto.createHash('sha256').update(text).digest('hex').slice(0,32);return audioUrlFor(text,`darren-${hash}`,timeoutMs);}
 
 function twimlForTurn({text,audioUrl,actionUrl,hangup=false,handoffNumber=''}){
   const voice=audioUrl?`<Play>${escapeXml(audioUrl)}</Play>`:`<Say voice="Polly.Amy">${escapeXml(text)}</Say>`;
