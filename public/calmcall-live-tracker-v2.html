@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CalmCall — Customer Job Tracker (demo)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#171a17;
+    --ink-soft:#767267;
+    --ink-faint:#aca894;
+    --teal:#1f5c50;
+    --teal-dim:#3d7266;
+    --sage:#eef3ee;
+    --mint-pill:#dcece4;
+    --gold:#c9982f;
+    --paper:#ffffff;
+    --page:#f1efe8;
+    --border:#e6e2d6;
+    --dot-future:#dcd8cb;
+    --black-btn:#171a17;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Manrope',sans-serif;
+    background:var(--page);
+    color:var(--ink);
+    min-height:100vh;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding:56px 20px 80px;
+  }
+  .stage-wrap{
+    width:100%;
+    max-width:1080px;
+    display:flex;
+    gap:60px;
+    align-items:flex-start;
+    justify-content:center;
+    flex-wrap:wrap;
+  }
+
+  /* ---------- website "try me" framing ---------- */
+  .intro{ max-width:360px; padding-top:22px; flex:1 1 300px; }
+  .intro .kicker{
+    display:inline-block;
+    font-size:12px; font-weight:700; letter-spacing:.04em;
+    color:var(--teal); text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .intro h1{
+    font-size:27px; line-height:1.28; font-weight:800;
+    margin:0 0 14px; color:var(--ink); letter-spacing:-.01em;
+  }
+  .intro p{ font-size:14.5px; line-height:1.65; color:var(--ink-soft); margin:0 0 22px; }
+  .pill-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+  .pill-row button{
+    font-family:'Manrope',sans-serif; font-size:13px; font-weight:700;
+    padding:9px 15px; border-radius:999px; border:1.5px solid var(--border);
+    background:var(--paper); color:var(--ink); cursor:pointer;
+    transition:background .18s ease, color .18s ease, border-color .18s ease;
+  }
+  .pill-row button.active{ background:var(--black-btn); border-color:var(--black-btn); color:#fff; }
+  .intro .hint{ font-size:12px; color:var(--ink-faint); line-height:1.6; }
+
+  /* ---------- phone ---------- */
+  .phone-shell{ flex:0 0 auto; }
+  .phone-frame{
+    width:340px; height:700px;
+    background:var(--page);
+    border:1.5px solid var(--border);
+    border-radius:44px;
+    padding:10px;
+    box-shadow:0 40px 70px -40px rgba(23,26,23,0.28), 0 8px 18px -10px rgba(23,26,23,0.10);
+    position:relative;
+  }
+  .notch{
+    position:absolute; top:10px; left:50%; transform:translateX(-50%);
+    width:120px; height:24px; background:var(--ink); border-radius:0 0 14px 14px; z-index:4;
+  }
+  .screen{
+    width:100%; height:100%;
+    background:var(--paper);
+    border-radius:34px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  .app-scroll{ flex:1; overflow-y:auto; padding:38px 18px 26px; scrollbar-width:none; }
+  .app-scroll::-webkit-scrollbar{ display:none; }
+
+  .app-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .mark{
+    width:34px; height:34px; border-radius:10px;
+    background:var(--teal); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:15px; flex-shrink:0;
+  }
+  .biz-name{ font-weight:800; font-size:16.5px; color:var(--ink); letter-spacing:-.01em; }
+  .via-pill{
+    font-size:11px; font-weight:700; color:var(--ink-soft);
+    background:var(--page); border:1px solid var(--border);
+    padding:6px 11px; border-radius:999px; white-space:nowrap;
+  }
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:19px 18px;
+    margin-bottom:14px;
+  }
+
+  /* status card */
+  .status-card{ background:var(--sage); border-color:#e0ebe3; }
+  .status-card .eyebrow{
+    font-size:11.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--teal); margin-bottom:9px;
+  }
+  .status-card h2{
+    font-size:20px; font-weight:800; line-height:1.28; margin:0 0 6px; color:var(--ink);
+  }
+  .status-card .sub{ font-size:13px; color:var(--ink-soft); line-height:1.55; margin:0; }
+  .maps-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; margin-top:15px;
+    background:var(--black-btn); color:#fff; text-decoration:none;
+    font-size:14.5px; font-weight:700;
+    padding:14px 0; border-radius:14px;
+    border:none; cursor:pointer;
+  }
+  .maps-btn svg{ flex-shrink:0; }
+
+  /* timeline card */
+  .timeline .row{ display:flex; align-items:flex-start; gap:12px; padding:9px 0; }
+  .timeline .dot-col{ display:flex; flex-direction:column; align-items:center; padding-top:3px; }
+  .timeline .dot{ width:11px; height:11px; border-radius:50%; background:var(--dot-future); flex-shrink:0; }
+  .timeline .stem{ width:1.5px; flex:1; background:var(--border); margin-top:3px; min-height:14px; }
+  .timeline .row:last-child .stem{ display:none; }
+  .timeline .text{ font-size:14.5px; color:var(--ink-faint); font-weight:600; padding-top:0px; }
+  .timeline .row.done .dot{ background:var(--teal); }
+  .timeline .row.done .text{ color:var(--ink-soft); font-weight:600; }
+  .timeline .row.current .dot{ background:var(--gold); box-shadow:0 0 0 4px rgba(201,152,47,0.18); }
+  .timeline .row.current .text{ color:var(--ink); font-weight:800; }
+
+  /* technician card */
+  .tech-card{ display:flex; align-items:center; gap:12px; }
+  .avatar{
+    width:44px; height:44px; border-radius:50%;
+    background:var(--teal); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:16px; flex-shrink:0;
+  }
+  .tech-info{ flex:1; min-width:0; }
+  .tech-info .name{ font-size:15px; font-weight:800; color:var(--ink); }
+  .tech-info .sub{ font-size:12.5px; color:var(--ink-soft); margin-top:2px; line-height:1.4; }
+  .call-btn{
+    flex-shrink:0; background:var(--mint-pill); color:var(--teal);
+    border:none; font-weight:800; font-size:13.5px;
+    padding:11px 20px; border-radius:999px; text-decoration:none;
+    display:inline-block;
+  }
+
+  /* review card */
+  .review-card{
+    text-align:center;
+    border-style:dashed;
+    border-color:#d9d4c4;
+    background:#fbfaf6;
+  }
+  .stars{ display:flex; justify-content:center; gap:6px; margin-bottom:12px; }
+  .stars svg{ width:24px; height:24px; }
+  .review-note{ font-size:12.5px; color:var(--ink-faint); margin-bottom:14px; line-height:1.5; }
+  .review-btn{
+    display:block; width:100%; text-align:center;
+    background:var(--black-btn); color:#fff; text-decoration:none;
+    font-size:14px; font-weight:700; padding:13px 0; border-radius:14px; border:none;
+  }
+  .review-btn[disabled]{ background:#e4e1d5; color:#a7a293; cursor:not-allowed; }
+
+  .footer-note{
+    text-align:center; margin-top:6px;
+    font-size:10.5px; color:var(--ink-faint); font-weight:700; letter-spacing:.01em;
+  }
+
+  @media (max-width:800px){
+    .stage-wrap{ justify-content:center; }
+    .intro{ text-align:center; order:2; max-width:340px; }
+    .pill-row{ justify-content:center; }
+    .phone-shell{ order:1; }
+  }
+</style>
+</head>
+<body>
+
+<div class="stage-wrap">
+
+  <div class="intro">
+    <span class="kicker">What your customer sees</span>
+    <h1>The link in your SMS, tidied up and taken seriously.</h1>
+    <p>Every CalmCall client gets a page like this the moment a job's booked. Tap a stage to see how it updates — including the real Google Maps location link Dave shares on his way.</p>
+    <div class="pill-row" id="pillRow"></div>
+    <div class="hint">Demo only — swap in your own business name, engineer and job details when you go live.</div>
+  </div>
+
+  <div class="phone-shell">
+    <div class="phone-frame">
+      <div class="notch"></div>
+      <div class="screen">
+        <div class="app-scroll">
+
+          <div class="app-header">
+            <div class="brand">
+              <div class="mark">C</div>
+              <div class="biz-name">Hollis Plumbing</div>
+            </div>
+            <div class="via-pill">via CalmCall</div>
+          </div>
+
+          <div class="card status-card" id="statusCard">
+            <div class="eyebrow" id="eyebrow">Your engineer is on the way</div>
+            <h2 id="headline">Dave shared his live location with you</h2>
+            <p class="sub" id="subtext">Tap below to follow him on Google Maps — it updates in real time until he arrives.</p>
+            <a class="maps-btn" id="mapsBtn" href="https://www.google.com/maps?q=50.4307,-3.6870" target="_blank" rel="noopener">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.5 7-12a7 7 0 10-14 0c0 5.5 7 12 7 12z" stroke="white" stroke-width="2"/><circle cx="12" cy="9" r="2.3" fill="white"/></svg>
+              Open in Google Maps
+            </a>
+          </div>
+
+          <div class="card timeline" id="timeline"></div>
+
+          <div class="card tech-card">
+            <div class="avatar">D</div>
+            <div class="tech-info">
+              <div class="name">Dave Hollis</div>
+              <div class="sub">Hollis Plumbing · Gas Safe registered</div>
+            </div>
+            <a class="call-btn" href="tel:+441803000000">Call</a>
+          </div>
+
+          <div class="card review-card">
+            <div class="stars">
+              <svg viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.6 6.8L12 17l-6.2 3.5 1.6-6.8L2.2 9l6.9-.7z"/></svg>
+              <svg viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.6 6.8L12 17l-6.2 3.5 1.6-6.8L2.2 9l6.9-.7z"/></svg>
+              <svg viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.6 6.8L12 17l-6.2 3.5 1.6-6.8L2.2 9l6.9-.7z"/></svg>
+              <svg viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.6 6.8L12 17l-6.2 3.5 1.6-6.8L2.2 9l6.9-.7z"/></svg>
+              <svg viewBox="0 0 24 24" fill="var(--gold)"><path d="M12 2l2.9 6.3 6.9.7-5.2 4.7 1.6 6.8L12 17l-6.2 3.5 1.6-6.8L2.2 9l6.9-.7z"/></svg>
+            </div>
+            <div class="review-note" id="reviewNote">Unlocks once your job's marked complete</div>
+            <button class="review-btn" id="reviewBtn" disabled>Leave a Google review</button>
+          </div>
+
+          <div class="footer-note">POWERED BY CALMCALL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const stages = [
+  {
+    key:'booked', pill:'Booked',
+    eyebrow:'Booking confirmed', headline:"We've got your job booked in",
+    sub:"We'll text you the moment Dave's on his way, with his live location.",
+    showMaps:false,
+    timeline:[
+      {label:"Booked — 8:52am", state:'current'},
+      {label:'On the way', state:'future'},
+      {label:'On site', state:'future'},
+      {label:'Job complete', state:'future'},
+    ]
+  },
+  {
+    key:'otw', pill:'On the way',
+    eyebrow:'Your engineer is on the way', headline:'Dave shared his live location with you',
+    sub:'Tap below to follow him on Google Maps — it updates in real time until he arrives.',
+    showMaps:true,
+    timeline:[
+      {label:'Booked — 8:52am', state:'done'},
+      {label:'On the way — approx. 20 min', state:'current'},
+      {label:'On site', state:'future'},
+      {label:'Job complete', state:'future'},
+    ]
+  },
+  {
+    key:'onsite', pill:'On site',
+    eyebrow:'Engineer on site', headline:'Dave has arrived and is getting set up',
+    sub:"He'll let you know if anything comes up before he starts.",
+    showMaps:false,
+    timeline:[
+      {label:'Booked — 8:52am', state:'done'},
+      {label:'On the way — 9:14am', state:'done'},
+      {label:'On site — just now', state:'current'},
+      {label:'Job complete', state:'future'},
+    ]
+  },
+  {
+    key:'complete', pill:'Complete',
+    eyebrow:'Job complete', headline:'All done — boiler serviced',
+    sub:"Dave's finished up and left some notes on your account.",
+    showMaps:false,
+    timeline:[
+      {label:'Booked — 8:52am', state:'done'},
+      {label:'On the way — 9:14am', state:'done'},
+      {label:'On site — 9:41am', state:'done'},
+      {label:'Job complete — 10:20am', state:'current'},
+    ]
+  },
+];
+
+let current = 1;
+const pillRow = document.getElementById('pillRow');
+stages.forEach((s,i)=>{
+  const b = document.createElement('button');
+  b.textContent = s.pill;
+  b.addEventListener('click', ()=> setStage(i));
+  pillRow.appendChild(b);
+});
+
+function renderTimeline(items){
+  const el = document.getElementById('timeline');
+  el.innerHTML = items.map((it,i)=>{
+    const isLast = i === items.length-1;
+    return `<div class="row ${it.state==='done'?'done':it.state==='current'?'current':''}">
+      <div class="dot-col"><div class="dot"></div>${isLast?'':'<div class="stem"></div>'}</div>
+      <div class="text">${it.label}</div>
+    </div>`;
+  }).join('');
+}
+
+function setStage(i){
+  current = i;
+  const s = stages[i];
+  document.querySelectorAll('#pillRow button').forEach((btn,idx)=> btn.classList.toggle('active', idx===i));
+
+  document.getElementById('eyebrow').textContent = s.eyebrow;
+  document.getElementById('headline').textContent = s.headline;
+  document.getElementById('subtext').textContent = s.sub;
+  document.getElementById('mapsBtn').style.display = s.showMaps ? 'flex' : 'none';
+
+  renderTimeline(s.timeline);
+
+  const reviewBtn = document.getElementById('reviewBtn');
+  const reviewNote = document.getElementById('reviewNote');
+  if(s.key === 'complete'){
+    reviewBtn.removeAttribute('disabled');
+    reviewBtn.textContent = 'Leave a Google review';
+    reviewNote.textContent = 'Thanks for choosing Hollis Plumbing!';
+  } else {
+    reviewBtn.setAttribute('disabled','disabled');
+    reviewNote.textContent = "Unlocks once your job's marked complete";
+  }
+}
+
+setStage(current);
+</script>
+</body>
+</html>

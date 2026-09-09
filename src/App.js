@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 /* ============================================================
    CALMCALL — MARKETING SITE
@@ -1075,6 +1075,111 @@ const TRY_DEMO_FEATURES = [
   { title: "Team & director dashboard", tier: "Enterprise", desc: "Full visibility across every staff member's calls, callbacks and performance, in one place." },
 ];
 
+/* ============================================================
+   CUSTOMER TRACKER DEMO
+   Embeds public/calmcall-live-tracker-v2.html — a self-contained
+   page with its own fonts, CSS variables and vanilla JS. It stays a
+   standalone file (and a standalone URL) so it can be edited on its
+   own; the iframe keeps its global styles from colliding with ours.
+   ============================================================ */
+const TRACKER_SRC = "/calmcall-live-tracker-v2.html";
+
+function CustomerTrackerDemo() {
+  const frameRef = useRef(null);
+  const [height, setHeight] = useState(900);
+
+  useEffect(() => {
+    const frame = frameRef.current;
+    if (!frame) return;
+    let observer;
+
+    // The tracker is served from our own /public, so it's same-origin and we
+    // can measure it directly rather than having it post its height up.
+    // Measure its content wrapper rather than <body>: the body is min-height
+    // 100vh, which inside an iframe just echoes back whatever height we set.
+    const measure = () => {
+      try {
+        const doc = frame.contentDocument;
+        if (!doc || !doc.body) return;
+        const stage = doc.querySelector(".stage-wrap");
+        if (!stage) {
+          setHeight(doc.body.scrollHeight);
+          return;
+        }
+        const bodyStyle = doc.defaultView.getComputedStyle(doc.body);
+        const pad = parseFloat(bodyStyle.paddingTop) + parseFloat(bodyStyle.paddingBottom);
+        setHeight(Math.ceil(stage.getBoundingClientRect().height + pad));
+      } catch (e) {
+        /* keep the last known height */
+      }
+    };
+
+    const onLoad = () => {
+      measure();
+      try {
+        const doc = frame.contentDocument;
+        const stage = doc && doc.querySelector(".stage-wrap");
+        if (stage && typeof ResizeObserver !== "undefined") {
+          observer = new ResizeObserver(measure);
+          observer.observe(stage);
+        }
+      } catch (e) {
+        /* no-op */
+      }
+    };
+
+    frame.addEventListener("load", onLoad);
+    window.addEventListener("resize", measure);
+    if (frame.contentDocument && frame.contentDocument.readyState === "complete") onLoad();
+
+    return () => {
+      frame.removeEventListener("load", onLoad);
+      window.removeEventListener("resize", measure);
+      if (observer) observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <section style={{ padding: "20px 28px 90px", background: T.porcelain }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 14 }}>
+            And what your customer sees
+          </p>
+          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(26px, 3.2vw, 34px)", fontWeight: 600, color: T.charcoal, maxWidth: 620, margin: "0 auto 14px", lineHeight: 1.2 }}>
+            The tracking link they get by text.
+          </h2>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.muted, maxWidth: 560, margin: "0 auto" }}>
+            Tap through the stages of a job to see the page your customer opens &mdash; booked, on the way, on site, complete.
+          </p>
+        </div>
+
+        <div style={{ borderRadius: 22, overflow: "hidden", border: `1px solid ${T.line}`, background: T.white }}>
+          <iframe
+            ref={frameRef}
+            src={TRACKER_SRC}
+            title="CalmCall customer job tracker demo"
+            loading="lazy"
+            scrolling="no"
+            style={{ display: "block", width: "100%", height, border: "none" }}
+          />
+        </div>
+
+        <p style={{ textAlign: "center", marginTop: 18 }}>
+          <a
+            href={TRACKER_SRC}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, color: T.teal }}
+          >
+            Open the customer view in a new tab &rarr;
+          </a>
+        </p>
+      </div>
+    </section>
+  );
+}
+
 function TryDemo({ setPage }) {
   return (
     <div>
@@ -1088,9 +1193,11 @@ function TryDemo({ setPage }) {
         </p>
       </section>
 
-      <section style={{ padding: "20px 28px 90px", background: T.porcelain }}>
+      <section style={{ padding: "20px 28px 60px", background: T.porcelain }}>
         <InteractivePhone />
       </section>
+
+      <CustomerTrackerDemo />
 
       <section style={{ padding: "20px 28px 100px", background: T.white }}>
         <div style={{ maxWidth: 1080, margin: "0 auto" }}>
