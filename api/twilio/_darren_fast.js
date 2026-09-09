@@ -11,7 +11,7 @@ async function askDarrenFast(session, callerSpeech) {
     lead.industry && `industry=${lead.industry}`,
     lead.location && `location=${lead.location}`,
     lead.reason && `reason=${lead.reason}`,
-    lead.missedCalls && `missedCalls=${lead.missedCalls`,
+    lead.missedCalls && `missedCalls=${lead.missedCalls}`,
     lead.interest && `interest=${lead.interest}`
   ].filter(Boolean).join(', ');
 
