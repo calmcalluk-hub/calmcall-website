@@ -173,7 +173,7 @@ function Footer({ setPage }) {
               <button onClick={() => setPage("try")} style={{ display: "block", background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, cursor: "pointer", textAlign: "left", padding: 0 }}>Try CalmCall</button>
               <button onClick={() => setPage("pricing")} style={{ display: "block", background: "none", border: "none", color: "rgba(255,255,255,0.75)", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, cursor: "pointer", textAlign: "left", padding: 0 }}>Pricing</button>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, color: "rgba(255,255,255,0.4)" }}>Basic</span>
-              <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, color: "rgba(255,255,255,0.4)" }}>Elite</span>
+              <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, marginBottom: 10, color: "rgba(255,255,255,0.4)" }}>Pro</span>
               <span style={{ display: "block", fontFamily: FONT_BODY, fontSize: 14, color: "rgba(255,255,255,0.4)" }}>Enterprise</span>
             </div>
           </div>
@@ -1068,10 +1068,10 @@ function InteractivePhone() {
 }
 
 const TRY_DEMO_FEATURES = [
-  { title: "Missed call capture & triage", tier: "Basic, Elite & Enterprise", desc: "Every missed call captured and colour-coded red, amber or green — so you always know who to call back first." },
-  { title: "Calendar & callbacks", tier: "Elite & Enterprise", desc: "Callbacks land straight in your diary the moment they're captured — no manual booking." },
+  { title: "Missed call capture & triage", tier: "Basic, Pro & Enterprise", desc: "Every missed call captured and colour-coded red, amber or green — so you always know who to call back first." },
+  { title: "Calendar & callbacks", tier: "Pro & Enterprise", desc: "Callbacks land straight in your diary the moment they're captured — no manual booking." },
   { title: "Live location tracking", tier: "Enterprise", desc: "See every van and every job on the map in real time, wherever your team is working." },
-  { title: "Lead pipeline", tier: "Elite & Enterprise", desc: "Track every enquiry from first contact through to a won job, without it slipping through the cracks." },
+  { title: "Lead pipeline", tier: "Pro & Enterprise", desc: "Track every enquiry from first contact through to a won job, without it slipping through the cracks." },
   { title: "Team & director dashboard", tier: "Enterprise", desc: "Full visibility across every staff member's calls, callbacks and performance, in one place." },
 ];
 
@@ -1242,10 +1242,10 @@ function TryDemo({ setPage }) {
    PRICING PAGE
    ============================================================ */
 function Pricing({ setPage }) {
-  const [mobileTier, setMobileTier] = useState("elite");
+  const [mobileTier, setMobileTier] = useState("pro");
   const tierMeta = [
     {
-      key: "basic", name: "Basic", tag: null, bestFor: "Single business owners", from: "From £89/mo",
+      key: "basic", name: "Basic", tag: null, bestFor: "Single business owners", from: "From £49.99/mo",
       desc: "SMS-only capture. The simplest way to stop losing calls.",
       highlights: [
         "Never let a missed call go unanswered",
@@ -1255,14 +1255,14 @@ function Pricing({ setPage }) {
       cta: "Start with Basic", highlight: false,
     },
     {
-      key: "elite", name: "Elite", tag: "Most popular", bestFor: "Solo traders", from: null,
+      key: "pro", name: "Pro", tag: "Most popular", bestFor: "Solo traders", from: "From £89.99/mo",
       desc: "The full branded app — your own personal call CRM.",
       highlights: [
         "Your own branded call app",
         "Colour-coded urgency, so you call the right people first",
         "A dedicated manager who knows your business",
       ],
-      cta: "Start with Elite", highlight: true,
+      cta: "Start with Pro", highlight: true,
     },
     {
       key: "enterprise", name: "Enterprise", tag: null, bestFor: "Teams", from: null,
@@ -1281,29 +1281,29 @@ function Pricing({ setPage }) {
     {
       label: "Missed call capture",
       rows: [
-        { label: "Instant SMS when a call is missed", basic: "full", elite: "full", enterprise: "full" },
-        { label: "Customer confirmation SMS", basic: "full", elite: "full", enterprise: "full" },
-        { label: "15-minute callback reminder", basic: "full", elite: "full", enterprise: "full" },
+        { label: "Instant SMS when a call is missed", basic: "full", pro: "full", enterprise: "full" },
+        { label: "Customer confirmation SMS", basic: "full", pro: "full", enterprise: "full" },
+        { label: "15-minute callback reminder", basic: "full", pro: "full", enterprise: "full" },
       ],
     },
     {
       label: "Personal call app",
       rows: [
-        { label: "Premium branded app", basic: null, elite: "full", enterprise: "full" },
-        { label: "Calendar & instant callback", basic: null, elite: "full", enterprise: "full" },
-        { label: "Red / amber / green urgency triage", basic: null, elite: "full", enterprise: "full" },
-        { label: "Dedicated accounts manager", basic: null, elite: "full", enterprise: "full" },
-        { label: "Fully tweakable to your business", basic: null, elite: "full", enterprise: "full" },
+        { label: "Premium branded app", basic: null, pro: "full", enterprise: "full" },
+        { label: "Calendar & instant callback", basic: null, pro: "full", enterprise: "full" },
+        { label: "Red / amber / green urgency triage", basic: null, pro: "full", enterprise: "full" },
+        { label: "Dedicated accounts manager", basic: null, pro: "full", enterprise: "full" },
+        { label: "Fully tweakable to your business", basic: null, pro: "full", enterprise: "full" },
       ],
     },
     {
       label: "Team & director visibility",
       rows: [
-        { label: "App on every staff member's phone", basic: null, elite: "partial", enterprise: "full" },
-        { label: "Director's dashboard — staff engagement & call tracking", basic: null, elite: null, enterprise: "full" },
-        { label: "Live location tracker for driving jobs", basic: null, elite: null, enterprise: "full" },
-        { label: "Team-wide callback tracking", basic: null, elite: null, enterprise: "full" },
-        { label: "Lead capture per staff member", basic: null, elite: null, enterprise: "full" },
+        { label: "App on every staff member's phone", basic: null, pro: "partial", enterprise: "full" },
+        { label: "Director's dashboard — staff engagement & call tracking", basic: null, pro: null, enterprise: "full" },
+        { label: "Live location tracker for driving jobs", basic: null, pro: null, enterprise: "full" },
+        { label: "Team-wide callback tracking", basic: null, pro: null, enterprise: "full" },
+        { label: "Lead capture per staff member", basic: null, pro: null, enterprise: "full" },
       ],
     },
   ];
@@ -1349,7 +1349,7 @@ function Pricing({ setPage }) {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 6 }}>
                 <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 22, fontWeight: 600, color: t.highlight ? T.white : T.charcoal, margin: 0 }}>{t.name}</h3>
                 {t.from && (
-                  <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, color: T.muted, background: T.porcelainDeep, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap" }}>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, color: t.highlight ? T.white : T.muted, background: t.highlight ? "rgba(255,255,255,0.16)" : T.porcelainDeep, padding: "4px 10px", borderRadius: 100, whiteSpace: "nowrap" }}>
                     {t.from}
                   </span>
                 )}
@@ -1419,7 +1419,7 @@ function Pricing({ setPage }) {
                         <Mark state={r.basic} highlight={false} />
                       </td>
                       <td style={{ textAlign: "center", padding: "12px 16px", background: "rgba(28,79,71,0.04)", borderTop: `1px solid ${T.line}` }}>
-                        <Mark state={r.elite} highlight={false} />
+                        <Mark state={r.pro} highlight={false} />
                       </td>
                       <td style={{ textAlign: "center", padding: "12px 16px", borderTop: `1px solid ${T.line}` }}>
                         <Mark state={r.enterprise} highlight={false} />
