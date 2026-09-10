@@ -1,0 +1,6 @@
+Darren V3 Realtime configuration
+
+Model: gpt-realtime-2.1-mini
+Voice: cedar
+Transport: SIP
+Webhook: /api/openai/realtime-webhook
