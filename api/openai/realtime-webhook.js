@@ -23,7 +23,7 @@ Rules:
 
 CalmCall helps service businesses manage missed calls, capture caller details, follow up leads and reduce lost opportunities.`;
 
-function timingSafeEqualHexOrBase64(a, b) {
+function timingSafeEqualBase64(a, b) {
   try {
     const aa = Buffer.from(a, 'base64');
     const bb = Buffer.from(b, 'base64');
@@ -36,19 +36,24 @@ function timingSafeEqualHexOrBase64(a, b) {
 function verifyWebhook(rawBody, req) {
   const secret = process.env.OPENAI_WEBHOOK_SECRET;
   if (!secret) return false;
+
   const signature = String(req.headers['webhook-signature'] || '');
   const timestamp = String(req.headers['webhook-timestamp'] || '');
   const id = String(req.headers['webhook-id'] || '');
   if (!signature || !timestamp || !id) return false;
+
   const age = Math.abs(Date.now() / 1000 - Number(timestamp));
   if (!Number.isFinite(age) || age > 300) return false;
 
   const secretBytes = Buffer.from(secret.replace(/^whsec_/, ''), 'base64');
   const signed = `${id}.${timestamp}.${rawBody}`;
   const expected = crypto.createHmac('sha256', secretBytes).update(signed).digest('base64');
+
   return signature.split(' ').some(value => {
-    const versioned = value.includes(',') ? value.split(',').pop() : value;
-    return timingSafeEqualHexOrBase64(versioned, expected);
+    const parts = value.split(',');
+    const version = parts[0];
+    const candidate = parts.length > 1 ? parts[1] : parts[0];
+    return (!version || version === 'v1') && timingSafeEqualBase64(candidate, expected);
   });
 }
 
@@ -79,6 +84,7 @@ async function acceptCall(callId) {
     const body = await response.text().catch(() => '');
     throw new Error(`Realtime accept ${response.status}: ${body.slice(0, 600)}`);
   }
+
   return response.json();
 }
 
