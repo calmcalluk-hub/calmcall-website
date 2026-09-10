@@ -1,4 +1,4 @@
-const OPENAI_PROJECT_ID = process.env.OPENAI_PROJECT_ID || '';
+const OPENAI_PROJECT_ID = process.env.OPENAI_PROJECT_ID || 'proj_zJO9c3hazOg8RnLAimXDhrud';
 const OPENAI_SIP_HOST = process.env.OPENAI_SIP_HOST || 'sip.api.openai.com';
 
 export const config = { api: { bodyParser: false } };
