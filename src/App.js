@@ -188,125 +188,162 @@ function Footer({ setPage }) {
 }
 
 /* ============================================================
-   PHONE MOCKUP — signature hero element
+   HERO PHONE — walks through the whole CalmCall journey:
+   answer in your voice → triage → diary → customer text → takings
    ============================================================ */
-function PhoneMockup() {
-  const [step, setStep] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setStep(s => (s + 1) % 4), 3600);
-    return () => clearInterval(t);
-  }, []);
+const PHONE_STEPS = [
+  "Answers in your voice",
+  "Sorts calls by urgency",
+  "Books it in the diary",
+  "Texts your customer",
+  "Shows what you won",
+];
 
-  const StatusBar = () => (
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px 0", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: T.charcoal }}>
-      <span>9:41</span>
-      <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-        <span style={{ fontSize: 10 }}>&#9679;&#9679;&#9679;</span>
-      </div>
+function EcosystemPhone() {
+  const [step, setStep] = useState(0);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || paused) return;
+    const t = setInterval(() => setStep(s => (s + 1) % PHONE_STEPS.length), 3800);
+    return () => clearInterval(t);
+  }, [paused]);
+
+  const Status = () => (
+    <div style={{ display: "flex", justifyContent: "space-between", padding: "16px 20px 0", fontFamily: FONT_BODY, fontSize: 11, fontWeight: 600, color: T.charcoal }}>
+      <span>9:41</span><span aria-hidden="true">&#9679;&#9679;&#9679;</span>
     </div>
   );
-
-  const AppHeader = ({ title }) => (
+  const Header = ({ title }) => (
     <div style={{ padding: "14px 20px 12px", borderBottom: `1px solid ${T.line}`, display: "flex", alignItems: "center", gap: 10 }}>
       <img src="/logo.jpeg" alt="" style={{ width: 22, height: 22, borderRadius: 6, objectFit: "cover" }} />
       <span style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontWeight: 600, color: T.charcoal }}>{title}</span>
     </div>
   );
+  const screen = { background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" };
+  const small = { fontFamily: FONT_BODY, fontSize: 12, color: T.muted, margin: 0 };
+  const dot = c => ({ width: 10, height: 10, borderRadius: "50%", background: c, flexShrink: 0 });
 
   const screens = [
-    // 0 — Incoming call
-    <div key="0" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <StatusBar />
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
-        <div style={{ width: 84, height: 84, borderRadius: "50%", background: T.teal, marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 30, color: T.white, fontWeight: 600 }}>JW</div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted, marginBottom: 6 }}>Incoming call</p>
-        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.charcoal, marginBottom: 60 }}>07700 900 214</p>
-        <div style={{ display: "flex", gap: 48, marginTop: 40 }}>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: "#E24B4A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: T.white }}>&#128222;</div>
-          <div style={{ width: 56, height: 56, borderRadius: "50%", background: T.teal, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, color: T.white }}>&#128222;</div>
+    // 0 — AI answering in the owner's cloned voice
+    <div key="0" style={screen}>
+      <Status />
+      <div style={{ padding: "28px 20px 0", textAlign: "center" }}>
+        <p style={{ ...small, marginBottom: 6 }}>Answering for you</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: T.charcoal, margin: "0 0 14px" }}>07700 900 332</p>
+        <Waveform color={T.teal} bars={22} height={34} />
+        <p style={{ ...small, marginTop: 8 }}>In Dave's own voice</p>
+      </div>
+      <div style={{ padding: "18px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ alignSelf: "flex-start", maxWidth: "86%", background: T.white, border: `1px solid ${T.line}`, borderRadius: "14px 14px 14px 4px", padding: "9px 12px", fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.45, color: T.charcoal }}>
+          Hi, it's Dave's Plumbing. Dave's on a job &ndash; I'm his assistant. What can I help with?
+        </div>
+        <div style={{ alignSelf: "flex-end", maxWidth: "86%", background: T.teal, borderRadius: "14px 14px 4px 14px", padding: "9px 12px", fontFamily: FONT_BODY, fontSize: 12.5, lineHeight: 1.45, color: T.white }}>
+          Boiler's packed in. No heating and two kids at home.
         </div>
       </div>
     </div>,
-    // 1 — Missed call, capture in progress
-    <div key="1" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <StatusBar />
-      <AppHeader title="CalmCall" />
-      <div style={{ flex: 1, padding: "20px" }}>
-        <div style={{ background: "#FBEDEA", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, color: "#B8483A", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: 0.5 }}>Missed call</p>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.charcoal, margin: 0, fontWeight: 500 }}>07700 900 214</p>
-        </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginBottom: 8, fontWeight: 600 }}>CAPTURING ENQUIRY</p>
-        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 14, padding: "16px 18px" }}>
-          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 15, fontStyle: "italic", color: T.charcoal, lineHeight: 1.5, margin: 0 }}>
-            "Hi it's John, my brakes are grinding in my BMW 1 Series and it needs looked at as soon as possible. Please call back at 13:15."
-          </p>
-        </div>
-      </div>
-    </div>,
-    // 2 — Diary booking
-    <div key="2" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <StatusBar />
-      <AppHeader title="Diary" />
-      <div style={{ flex: 1, padding: "20px" }}>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 12, color: T.muted, marginBottom: 10, fontWeight: 600 }}>TODAY</p>
-        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 14px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted }}>11:00</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.charcoal, fontWeight: 500 }}>Service &ndash; R. Patel</span>
-        </div>
-        <div style={{ background: T.teal, borderRadius: 12, padding: "12px 16px", marginBottom: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: "rgba(255,255,255,0.75)", display: "block" }}>13:15</span>
-            <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, color: T.white, fontWeight: 600 }}>Callback &ndash; John, brakes</span>
+    // 1 — Traffic-light triage
+    <div key="1" style={screen}>
+      <Status /><Header title="Calls" />
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        {[
+          ["#E24B4A", "Priya Shah", "Boiler out, no heating", "Urgent"],
+          ["#E8A33D", "Sarah Nguyen", "Quote for a kitchen tap", "This week"],
+          ["#2A7C6F", "Grace Okafor", "Saturday opening hours", "Low"],
+        ].map(([c, name, note, tag]) => (
+          <div key={name} style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 12px", display: "flex", gap: 10, alignItems: "center" }}>
+            <span style={dot(c)} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 600, color: T.charcoal, margin: 0 }}>{name}</p>
+              <p style={{ ...small, fontSize: 11.5 }}>{note}</p>
+            </div>
+            <span style={{ fontFamily: FONT_BODY, fontSize: 10.5, fontWeight: 600, color: c }}>{tag}</span>
           </div>
-          <span style={{ background: T.amber, color: T.charcoal, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100 }}>NEW</span>
+        ))}
+        <p style={{ ...small, fontSize: 11.5, marginTop: 6, lineHeight: 1.5 }}>Full transcript and summary on every call.</p>
+      </div>
+    </div>,
+    // 2 — Diary
+    <div key="2" style={screen}>
+      <Status /><Header title="Diary" />
+      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        <p style={{ ...small, fontWeight: 600 }}>Today</p>
+        {[["11:00", "Service, R. Patel", false], ["14:30", "Boiler repair, Priya", true], ["16:00", "Quote visit, Sarah", false]].map(([time, title, isNew]) => (
+          <div key={time} style={{ background: isNew ? T.teal : T.white, border: isNew ? "none" : `1px solid ${T.line}`, borderRadius: 12, padding: "11px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 12, color: isNew ? "rgba(255,255,255,0.75)" : T.muted, display: "block" }}>{time}</span>
+              <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: isNew ? T.white : T.charcoal, fontWeight: 600 }}>{title}</span>
+            </div>
+            {isNew && <span style={{ background: T.amber, color: T.charcoal, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 100 }}>New</span>}
+          </div>
+        ))}
+      </div>
+    </div>,
+    // 3 — Customer text with tracking link
+    <div key="3" style={screen}>
+      <Status /><Header title="Messages" />
+      <div style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 8 }}>
+        <div style={{ alignSelf: "flex-end", maxWidth: "88%", background: T.teal, borderRadius: "16px 16px 4px 16px", padding: "11px 14px" }}>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 12.5, color: T.white, margin: 0, lineHeight: 1.5 }}>
+            Hi Priya, you're booked for 14:30 today. Follow Dave's arrival here: <span style={{ color: T.amber, textDecoration: "underline" }}>calmcall.co.uk/t/8KD2</span>
+          </p>
         </div>
-        <div style={{ background: T.white, border: `1px solid ${T.line}`, borderRadius: 12, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.muted }}>15:30</span>
-          <span style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.charcoal, fontWeight: 500 }}>MOT &ndash; T. Green</span>
+        <p style={{ ...small, fontSize: 11, alignSelf: "flex-end" }}>Delivered</p>
+        <div style={{ alignSelf: "flex-start", background: T.white, border: `1px solid ${T.line}`, borderRadius: "16px 16px 16px 4px", padding: "9px 13px", fontFamily: FONT_BODY, fontSize: 12.5, color: T.charcoal }}>
+          Brilliant, thank you!
         </div>
       </div>
     </div>,
-    // 3 — SMS confirmation
-    <div key="3" style={{ background: T.porcelain, width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-      <StatusBar />
-      <AppHeader title="Messages" />
-      <div style={{ flex: 1, padding: "20px", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-        <div style={{ alignSelf: "flex-end", maxWidth: "80%", background: T.teal, borderRadius: "16px 16px 4px 16px", padding: "12px 16px", marginBottom: 10 }}>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: T.white, margin: 0, lineHeight: 1.5 }}>
-            Thanks for calling! We've booked your callback for 13:15 today. Talk soon &ndash; the team.
-          </p>
+    // 4 — Revenue
+    <div key="4" style={screen}>
+      <Status /><Header title="This week" />
+      <div style={{ padding: 18 }}>
+        <p style={small}>Won from calls you couldn't take</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 40, fontWeight: 600, color: T.teal, margin: "4px 0 18px" }}>&pound;1,240</p>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 90, marginBottom: 8 }} aria-hidden="true">
+          {[30, 55, 20, 70, 45, 90, 60].map((h, i) => (
+            <div key={i} style={{ flex: 1, height: `${h}%`, background: i === 5 ? T.amber : T.tealBright, borderRadius: 4, opacity: i === 5 ? 1 : 0.8 }} />
+          ))}
         </div>
-        <p style={{ fontFamily: FONT_BODY, fontSize: 11, color: T.muted, alignSelf: "flex-end", marginBottom: 4 }}>Delivered</p>
+        <div style={{ display: "flex", justifyContent: "space-between", ...small, fontSize: 10.5 }}>
+          {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <span key={i}>{d}</span>)}
+        </div>
+        <p style={{ ...small, marginTop: 16, lineHeight: 1.5 }}>7 jobs booked from missed calls.</p>
       </div>
     </div>,
   ];
 
-  const labels = ["Incoming call", "Capturing the job", "Booked in the diary", "Customer confirmed"];
-
   return (
-    <div style={{ position: "relative", width: 280, height: 560, margin: "0 auto" }}>
-      <div style={{
-        width: "100%", height: "100%", borderRadius: 44, background: T.charcoal,
-        border: "8px solid " + T.charcoal, boxShadow: "0 40px 80px rgba(28,79,71,0.25), 0 10px 30px rgba(0,0,0,0.15)",
-        overflow: "hidden", position: "relative",
-      }}>
+    <div style={{ width: 280, margin: "0 auto" }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div style={{ width: 280, height: 560, borderRadius: 44, background: T.charcoal, border: `8px solid ${T.charcoal}`, boxShadow: "0 40px 80px rgba(28,79,71,0.25), 0 10px 30px rgba(0,0,0,0.15)", overflow: "hidden", position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 120, height: 26, background: T.charcoal, borderRadius: "0 0 16px 16px", zIndex: 10 }} />
         {screens[step]}
       </div>
-      <p style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 12.5, color: T.muted, marginTop: 16, fontWeight: 500 }}>{labels[step]}</p>
-      <div style={{ display: "flex", justifyContent: "center", gap: 8, marginTop: 8 }}>
-        {screens.map((_, i) => (
-          <div key={i} style={{ width: i === step ? 22 : 7, height: 7, borderRadius: 4, background: i === step ? T.amber : T.line, transition: "all .3s" }} />
+      <p aria-live="polite" style={{ textAlign: "center", fontFamily: FONT_BODY, fontSize: 13.5, color: T.charcoal, marginTop: 18, fontWeight: 600 }}>{PHONE_STEPS[step]}</p>
+      <div style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 8 }}>
+        {PHONE_STEPS.map((label, i) => (
+          <button key={label} onClick={() => { setStep(i); setPaused(true); }} aria-label={`Show: ${label}`} aria-current={i === step}
+            style={{ width: i === step ? 24 : 8, height: 8, padding: 0, border: "none", borderRadius: 4, background: i === step ? T.amber : T.line, cursor: "pointer", transition: "width .3s" }} />
         ))}
       </div>
     </div>
   );
 }
 
-/* ============================================================
-   HOME PAGE
-   ============================================================ */
+function Waveform({ color, bars = 28, height = 40 }) {
+  // Static, deterministic "voice" shape — no animation needed.
+  const heights = Array.from({ length: bars }, (_, i) => 0.25 + 0.75 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.6)));
+  return (
+    <div aria-hidden="true" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 3, height }}>
+      {heights.map((h, i) => (
+        <span key={i} style={{ width: 3, height: `${Math.round(h * 100)}%`, background: color, borderRadius: 2 }} />
+      ))}
+    </div>
+  );
+}
+
 /* ============================================================
    MISSED CALL WIDGET — hero attention-grabber + interactive cost calculator
    Two distinct states: compact ticker card, then a fuller detailed calculator
@@ -518,124 +555,155 @@ function BusinessTypeFinder({ setPage }) {
   );
 }
 
+/* ============================================================
+   HOME PAGE
+   Edit these three constants to change prices and the voice sample.
+   ============================================================ */
+const HOME_PLANS = [
+  { name: "Basic", price: "£49.99", per: "/month", from: true, line: "SMS capture for single business owners. Every missed caller gets an instant reply, and you get a callback reminder." },
+  { name: "Pro", price: "£89.99", per: "/month", from: true, tag: "Most popular", line: "Your own branded call app, with diary, instant callback, red-amber-green triage and a dedicated account manager." },
+  { name: "Enterprise", price: "Custom", per: "", from: false, line: "For teams: a director's dashboard, live location tracking for vans and team-wide callback tracking." },
+];
+const GARAGE_PHOTO_SRC = "/garage-mechanics.jpg";
+const VOICE_CLONE_PRICE = "£19.99";
+const VOICE_SAMPLE_SRC = null; // e.g. "/voice-sample.mp3" — the play button appears once this is set
+
+const ECOSYSTEM = [
+  ["Answers every call", "Picks up when you can't, has a proper conversation and takes the details. Not a voicemail."],
+  ["Sounds like you", "Clone your own voice so regular customers hear a voice they know."],
+  ["Transcripts and summaries", "Read any call in seconds: who, what, where and how urgent."],
+  ["Red, amber, green triage", "Emergencies go to the top. Price checks wait until you're free."],
+  ["Diary and bookings", "Jobs, callbacks and appointments land straight in your calendar."],
+  ["Customer texts", "Confirmations, reminders and on-my-way messages go out automatically."],
+  ["Customer tracking link", "Customers follow your arrival like a takeaway order, so they stop ringing to ask."],
+  ["Team map and revenue", "See where every van is, and exactly what CalmCall won you this week."],
+];
+
+const COMPARE_ROWS = [
+  ["Answers missed calls", true, true],
+  ["Speaks in your own voice", false, true],
+  ["Books jobs into your diary", false, true],
+  ["Texts confirmations and reminders", false, true],
+  ["Customer tracking link", false, true],
+  ["Team map and revenue dashboard", false, true],
+  ["Works on iPhone and Android", "Often one", true],
+  ["Pricing", "Capped minutes", "Flat monthly"],
+];
+
+const FAQS = [
+  ["Do I keep my own number?", "Yes. Your calls forward to CalmCall only when you want them to: when you miss one, when you're busy, or out of hours."],
+  ["How long does setup take?", "Around ten minutes. We set it up with you on a short call, then you ring your own number to hear it answer."],
+  ["Does it work on Android?", "Yes. CalmCall runs on iPhone, Android and desktop, with nothing to download from an app store."],
+  ["Will callers know it's an assistant?", "Yes. Even in your cloned voice, it introduces itself as your assistant, so customers are never misled."],
+  ["How does voice cloning work?", `You record a short script in the app and your voice is ready the same day. It's a one-time ${VOICE_CLONE_PRICE} setup, on any plan.`],
+  ["Is it only for trades?", "No. It's built just as much for barbers, salons, beauticians, tattoo studios and anyone else who takes bookings by phone."],
+];
+
+const H2 = ({ children, light, center }) => (
+  <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 3.6vw, 42px)", fontWeight: 600, lineHeight: 1.12, letterSpacing: -0.5, color: light ? T.white : T.charcoal, margin: "0 0 18px", textAlign: center ? "center" : "left", maxWidth: 720, marginLeft: center ? "auto" : 0, marginRight: center ? "auto" : 0 }}>
+    {children}
+  </h2>
+);
+const Lede = ({ children, light, center }) => (
+  <p style={{ fontFamily: FONT_BODY, fontSize: 17, lineHeight: 1.65, color: light ? "rgba(255,255,255,0.78)" : T.muted, maxWidth: 580, margin: center ? "0 auto" : 0, textAlign: center ? "center" : "left" }}>
+    {children}
+  </p>
+);
+const btnPrimary = { background: T.teal, color: T.white, border: "none", padding: "16px 30px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" };
+const btnGhost = { background: "none", color: T.charcoal, border: `1.5px solid ${T.line}`, padding: "16px 30px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" };
+
+function Mark({ value, strong }) {
+  if (value === true) return <span aria-label="Yes" style={{ color: strong ? T.amber : T.teal, fontWeight: 700, fontSize: 17 }}>&#10003;</span>;
+  if (value === false) return <span aria-label="No" style={{ color: strong ? "rgba(255,255,255,0.35)" : "#C9C5BA", fontSize: 17 }}>&ndash;</span>;
+  return <span style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: strong ? T.white : T.muted }}>{value}</span>;
+}
+
 function Home({ setPage }) {
+  const audioRef = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const toggleSample = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (a.paused) { a.play(); setPlaying(true); } else { a.pause(); setPlaying(false); }
+  };
+
   return (
     <div>
       {/* HERO */}
-      <section style={{ background: `linear-gradient(180deg, ${T.porcelain} 0%, ${T.porcelainDeep} 100%)`, padding: "72px 28px 40px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 40, alignItems: "center" }} className="hero-grid">
+      <section className="hero-section" style={{ background: `linear-gradient(180deg, ${T.porcelain} 0%, ${T.porcelainDeep} 100%)`, padding: "72px 28px 64px" }}>
+        <div className="hero-grid" style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "0.85fr 1.15fr", gap: 56, alignItems: "center" }}>
+          <EcosystemPhone />
           <div>
-            <div style={{ marginBottom: 24 }}><MissedCallWidget /></div>
-            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(38px, 5vw, 60px)", lineHeight: 1.06, fontWeight: 600, color: T.charcoal, letterSpacing: -1, marginBottom: 24 }}>
-              Never let a missed call<br />become a missed job.
+            <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(40px, 5.4vw, 66px)", lineHeight: 1.03, fontWeight: 600, color: T.charcoal, letterSpacing: -1.5, margin: "0 0 24px" }}>
+              Your calls, bookings and customers, handled.
             </h1>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 18, lineHeight: 1.6, color: T.muted, maxWidth: 480, marginBottom: 36 }}>
-              Every missed call is a lead sitting in someone else's inbox by lunchtime. CalmCall captures the job, books the callback, and puts your day back in order — automatically.
+            <p style={{ fontFamily: FONT_BODY, fontSize: 18.5, lineHeight: 1.6, color: T.ink, maxWidth: 520, margin: "0 0 34px" }}>
+              CalmCall answers when you can't, in your own voice. It books the job, texts the customer, lets them track you to the door, and shows you what it all earned.
             </p>
-            <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-              <button onClick={() => setPage("contact")} style={{ background: T.teal, color: T.white, border: "none", padding: "16px 32px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" }}>
-                Book a Demo
-              </button>
-              <button onClick={() => setPage("pricing")} style={{ background: "none", color: T.charcoal, border: `1.5px solid ${T.line}`, padding: "16px 32px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 600, cursor: "pointer" }}>
-                See Pricing
-              </button>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginBottom: 30 }}>
+              <button onClick={() => setPage("contact")} style={btnPrimary}>Book a demo</button>
+              <button onClick={() => setPage("try")} style={btnGhost}>Try it yourself</button>
+            </div>
+            <ul className="proof-list" style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px", maxWidth: 520 }}>
+              {["Works on iPhone and Android", "Flat price, no minute caps", "Live in about ten minutes", "Keep your own number"].map(t => (
+                <li key={t} style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.charcoal, display: "flex", gap: 10, alignItems: "center" }}>
+                  <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", background: T.teal, color: T.white, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>&#10003;</span>{t}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* REAL-WORLD PHOTO: hands full, phone ringing */}
+      <section style={{ padding: "96px 28px", background: T.teal, overflow: "hidden" }}>
+        <div className="split-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "0.95fr 1.05fr", gap: 64, alignItems: "center" }}>
+          <div style={{ position: "relative", maxWidth: 440, width: "100%", margin: "0 auto" }}>
+            <img src={GARAGE_PHOTO_SRC} alt="Two mechanics working under a car raised on a ramp in a garage" loading="lazy"
+              style={{ display: "block", width: "100%", aspectRatio: "4 / 5", objectFit: "cover", objectPosition: "50% 72%", borderRadius: 24, boxShadow: "0 30px 60px rgba(0,0,0,0.3)" }} />
+            <div className="photo-card photo-card-top" style={{ position: "absolute", top: 24, left: -28, background: T.white, borderRadius: 16, padding: "12px 16px", boxShadow: "0 14px 34px rgba(0,0,0,0.22)", maxWidth: 230 }}>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, color: "#E24B4A", margin: "0 0 3px" }}>Incoming call, 10:42</p>
+              <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal, margin: 0, lineHeight: 1.35 }}>Nobody's free to pick up.</p>
+            </div>
+            <div className="photo-card photo-card-bottom" style={{ position: "absolute", bottom: 28, right: -28, background: T.white, borderRadius: 16, padding: "14px 16px", boxShadow: "0 14px 34px rgba(0,0,0,0.22)", maxWidth: 260, display: "flex", gap: 12, alignItems: "flex-start" }}>
+              <span aria-hidden="true" style={{ width: 28, height: 28, borderRadius: "50%", background: T.teal, color: T.amber, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14, flexShrink: 0 }}>&#10003;</span>
+              <div>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, color: T.teal, margin: "0 0 3px" }}>Answered by CalmCall</p>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 13.5, fontWeight: 600, color: T.charcoal, margin: 0, lineHeight: 1.35 }}>Brake pads booked, Thursday 9am. Customer texted.</p>
+              </div>
             </div>
           </div>
-          <PhoneMockup />
+          <div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, color: T.amber, margin: "0 0 14px" }}>A real Tuesday morning</p>
+            <H2 light>Both hands full. Phone still ringing.</H2>
+            <Lede light>
+              Two of you under a car, exhaust halfway off. That call could be next week's best job, and by the time you've washed your hands they've rung someone else.
+            </Lede>
+            <ul style={{ listStyle: "none", padding: 0, margin: "28px 0 0", display: "flex", flexDirection: "column", gap: 12 }}>
+              {["Answered in your voice while you keep working", "Job booked straight into the diary", "Customer gets a text, you get the details"].map(t => (
+                <li key={t} style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.white, display: "flex", gap: 12, alignItems: "center" }}>
+                  <span aria-hidden="true" style={{ width: 22, height: 22, borderRadius: "50%", background: T.amber, color: T.charcoal, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>&#10003;</span>{t}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* STATS STRIP */}
-      <section style={{ background: T.teal, padding: "36px 28px" }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24, textAlign: "center" }}>
-          {[
-            ["27%", "of calls to SMEs go unanswered"],
-            ["62%", "of callers never leave a voicemail"],
-            ["100×", "more likely to convert if contacted within 5 minutes"],
-          ].map(([num, label]) => (
-            <div key={label}>
-              <div style={{ fontFamily: FONT_DISPLAY, fontSize: 36, fontWeight: 600, color: T.white, marginBottom: 6 }}>{num}</div>
-              <div style={{ fontFamily: FONT_BODY, fontSize: 14, color: "rgba(255,255,255,0.75)", maxWidth: 220, margin: "0 auto" }}>{label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* PROBLEM */}
-      <section style={{ padding: "96px 28px 60px", background: T.white }}>
-        <div style={{ maxWidth: 720, margin: "0 auto", textAlign: "center" }}>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 18 }}>The Problem</p>
-          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 3.5vw, 40px)", fontWeight: 600, color: T.charcoal, lineHeight: 1.2, marginBottom: 24 }}>
-            You can't answer the phone under a sink.
-          </h2>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 17, lineHeight: 1.7, color: T.muted }}>
-            You're driving, mid-job, up a ladder, or already on another call. Every ring you miss is a customer who moves straight to the next name on the list — and voicemail doesn't stop them. CalmCall does.
-          </p>
-        </div>
-      </section>
-
-      {/* REAL SCENARIOS */}
-      <section style={{ padding: "20px 28px 100px", background: T.white }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 28 }} className="scenario-grid">
-          {[
-            { img: "/scenario-plumber.jpg", title: "Hands full under the sink", desc: "Plumber elbow-deep in a leak. Phone rings twice, potential job lost." },
-            { img: "/scenario-mechanic.jpg", title: "Flat on his back under a car", desc: "Mechanic mid-repair, can't reach the phone. Caller hangs up, calls the next shop." },
-          ].map(s => (
-            <div key={s.title} style={{ background: T.porcelainDeep, borderRadius: 20, overflow: "hidden", border: `1px solid ${T.line}` }}>
-              <div style={{ position: "relative" }}>
-                <img src={s.img} alt={s.title} style={{ width: "100%", height: 280, objectFit: "cover", display: "block" }} />
-                <span style={{ position: "absolute", top: 16, right: 16, background: "#B8483A", color: T.white, fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 700, padding: "7px 16px", borderRadius: 100 }}>
-                  Missed Call
-                </span>
-              </div>
-              <div style={{ padding: "24px 26px" }}>
-                <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: T.charcoal, marginBottom: 8 }}>{s.title}</h3>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.muted }}>{s.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section style={{ padding: "0 28px 100px", background: T.white }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 12, textAlign: "center" }}>How It Works</p>
-          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 3.5vw, 38px)", fontWeight: 600, color: T.charcoal, textAlign: "center", marginBottom: 64 }}>
-            Your own voice. Instant response.
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 28 }} className="steps-grid">
+      {/* TWO LANES */}
+      <section style={{ padding: "96px 28px", background: T.white }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <H2>Built for people who can't stop to pick up.</H2>
+          <div className="lanes-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0, marginTop: 44, borderTop: `2px solid ${T.charcoal}` }}>
             {[
-              ["Call is missed", "CalmCall plays your own recorded greeting — not a robot, not generic hold music."],
-              ["Caller responds", "They leave their name, what they need, and a preferred callback time."],
-              ["You're notified", "An instant SMS tells you exactly who called and why — nothing lost."],
-              ["You call back informed", "A 15-minute reminder keeps you on track, so nothing slips through."],
-            ].map(([title, desc], i) => (
-              <div key={title}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: T.porcelainDeep, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontSize: 16, fontWeight: 600, color: T.teal, marginBottom: 18 }}>
-                  {i + 1}
-                </div>
-                <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 600, color: T.charcoal, marginBottom: 10 }}>{title}</h3>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 14.5, lineHeight: 1.6, color: T.muted }}>{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* WHO IT'S FOR */}
-      <section style={{ padding: "96px 28px", background: T.porcelainDeep }}>
-        <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div style={{ textAlign: "center", marginBottom: 56 }}>
-            <p style={{ fontFamily: FONT_BODY, fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: T.amberDeep, marginBottom: 12 }}>Built For</p>
-            <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 3.5vw, 38px)", fontWeight: 600, color: T.charcoal }}>
-              Any business where a missed call costs real money.
-            </h2>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }} className="trades-grid">
-            {["Mechanics", "Plumbers", "Electricians", "Locksmiths", "Jewellers", "Beauticians", "Roofers", "Estate Agents"].map(t => (
-              <div key={t} style={{ background: T.white, borderRadius: 14, padding: "24px 20px", border: `1px solid ${T.line}`, textAlign: "center" }}>
-                <p style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, color: T.charcoal }}>{t}</p>
+              { title: "Trades", hook: "Never miss a job.", body: "Under a sink, up a ladder, flat on your back under a car. CalmCall takes the call, spots the emergency and books it in.", who: "Plumbers, electricians, mechanics, roofers, locksmiths, builders" },
+              { title: "Appointments", hook: "Never miss a booking.", body: "Mid-fade, mid-tattoo, mid-treatment. CalmCall books the slot, sends the reminder and cuts no-shows.", who: "Barbers, salons, beauticians, tattoo studios, nail techs" },
+            ].map((l, i) => (
+              <div key={l.title} className="lane" style={{ padding: i === 0 ? "32px 40px 8px 0" : "32px 0 8px 40px", borderLeft: i === 1 ? `1px solid ${T.line}` : "none" }}>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, color: T.teal, margin: "0 0 10px" }}>{l.title}</p>
+                <h3 style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 600, color: T.charcoal, margin: "0 0 14px", lineHeight: 1.15 }}>{l.hook}</h3>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.65, color: T.ink, margin: "0 0 16px" }}>{l.body}</p>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 14, lineHeight: 1.6, color: T.muted, margin: 0 }}>{l.who}</p>
               </div>
             ))}
           </div>
@@ -643,19 +711,151 @@ function Home({ setPage }) {
         </div>
       </section>
 
+      {/* COST OF MISSED CALLS */}
+      <section style={{ padding: "96px 28px", background: T.porcelainDeep }}>
+        <div className="split-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 56, alignItems: "center" }}>
+          <div>
+            <H2>Voicemail doesn't win work.</H2>
+            <Lede>Most people who reach voicemail don't leave a message. They ring the next name on Google. Work out what that's costing you each month.</Lede>
+          </div>
+          <MissedCallWidget />
+        </div>
+      </section>
+
+      {/* ECOSYSTEM */}
+      <section style={{ padding: "96px 28px", background: T.white }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <H2>One app runs the lot.</H2>
+          <Lede>Answering is where CalmCall starts, not where it stops. Everything below comes in one login and one monthly bill.</Lede>
+          <dl className="eco-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", columnGap: 56, margin: "48px 0 0" }}>
+            {ECOSYSTEM.map(([title, desc]) => (
+              <div key={title} style={{ padding: "22px 0", borderTop: `2px solid ${T.tealBright}`, display: "flex", gap: 16, alignItems: "flex-start" }}>
+                <span aria-hidden="true" style={{ width: 30, height: 30, borderRadius: "50%", background: T.teal, color: T.amber, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 15, flexShrink: 0, marginTop: 1 }}>&#10003;</span>
+                <div>
+                  <dt style={{ fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 600, color: T.teal, marginBottom: 6 }}>{title}</dt>
+                  <dd style={{ fontFamily: FONT_BODY, fontSize: 15.5, lineHeight: 1.6, color: T.ink, margin: 0 }}>{desc}</dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* VOICE CLONING */}
+      <section style={{ padding: "96px 28px", background: T.teal }}>
+        <div className="split-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 56, alignItems: "center" }}>
+          <div>
+            <H2 light>Your customers hear you, not a robot.</H2>
+            <Lede light>
+              Record a short script and CalmCall answers in your own voice. Regulars hear someone they recognise, and new callers get a local business, not a call centre. It still introduces itself as your assistant, so nobody's misled.
+            </Lede>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: T.white, margin: "26px 0 0" }}>
+              <strong style={{ fontFamily: FONT_DISPLAY, fontSize: 30, fontWeight: 600, color: T.amber, marginRight: 10 }}>{VOICE_CLONE_PRICE}</strong>
+              one-time setup, on any plan
+            </p>
+          </div>
+          <div style={{ background: T.tealDeep, borderRadius: 24, padding: "36px 32px", textAlign: "center" }}>
+            <Waveform color={T.amber} bars={36} height={70} />
+            {VOICE_SAMPLE_SRC ? (
+              <>
+                <audio ref={audioRef} src={VOICE_SAMPLE_SRC} onEnded={() => setPlaying(false)} preload="none" />
+                <button onClick={toggleSample} style={{ ...btnPrimary, background: T.amber, color: T.charcoal, marginTop: 26 }}>
+                  {playing ? "Pause sample" : "Play a cloned voice"}
+                </button>
+              </>
+            ) : (
+              <p style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: "rgba(255,255,255,0.75)", margin: "22px 0 0" }}>
+                Hear it on your demo: we'll clone your voice live.
+              </p>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* CUSTOMER TRACKER (shared with the Try page) */}
+      <div style={{ paddingTop: 72, background: T.porcelain }}>
+        <CustomerTrackerDemo />
+      </div>
+
+      {/* COMPARISON */}
+      <section style={{ padding: "96px 28px", background: T.white }}>
+        <div style={{ maxWidth: 860, margin: "0 auto" }}>
+          <H2>An answering bot takes a message. CalmCall runs the job.</H2>
+          <div style={{ overflowX: "auto", marginTop: 40 }}>
+            <table style={{ width: "100%", minWidth: 520, borderCollapse: "collapse", fontFamily: FONT_BODY }}>
+              <thead>
+                <tr>
+                  <th scope="col" style={{ textAlign: "left", padding: "14px 16px", fontSize: 14, color: T.muted, fontWeight: 600 }}><span className="sr-only">Feature</span></th>
+                  <th scope="col" style={{ padding: "14px 16px", fontSize: 14, color: T.muted, fontWeight: 600, width: 150 }}>Typical answering bot</th>
+                  <th scope="col" style={{ padding: "14px 16px", fontSize: 15, color: T.white, fontWeight: 700, width: 150, background: T.teal, borderRadius: "14px 14px 0 0" }}>CalmCall</th>
+                </tr>
+              </thead>
+              <tbody>
+                {COMPARE_ROWS.map(([label, them, us], i) => (
+                  <tr key={label}>
+                    <th scope="row" style={{ textAlign: "left", padding: "15px 16px", fontSize: 15, fontWeight: 500, color: T.charcoal, borderTop: `1px solid ${T.line}` }}>{label}</th>
+                    <td style={{ textAlign: "center", padding: "15px 16px", borderTop: `1px solid ${T.line}` }}><Mark value={them} /></td>
+                    <td style={{ textAlign: "center", padding: "15px 16px", background: T.teal, borderTop: "1px solid rgba(255,255,255,0.12)", borderRadius: i === COMPARE_ROWS.length - 1 ? "0 0 14px 14px" : 0 }}><Mark value={us} strong /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {/* PRICING TEASER */}
+      <section style={{ padding: "96px 28px", background: T.porcelainDeep }}>
+        <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+          <H2>Simple monthly prices. No meter running.</H2>
+          <Lede>Other services count your minutes, so a chatty caller costs you money. CalmCall doesn't.</Lede>
+          <div className="plans-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20, marginTop: 44 }}>
+            {HOME_PLANS.map((p, i) => (
+              <div key={p.name} style={{ background: i === 1 ? T.teal : T.white, borderRadius: 20, padding: "28px 26px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 0 12px" }}>
+                  <p style={{ fontFamily: FONT_BODY, fontSize: 15, fontWeight: 600, color: i === 1 ? T.amber : T.teal, margin: 0 }}>{p.name}</p>
+                  {p.tag && <span style={{ background: T.amber, color: T.charcoal, fontFamily: FONT_BODY, fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 100 }}>{p.tag}</span>}
+                </div>
+                {p.from && <p style={{ fontFamily: FONT_BODY, fontSize: 13, color: i === 1 ? "rgba(255,255,255,0.6)" : T.muted, margin: "0 0 2px" }}>From</p>}
+                <p style={{ margin: "0 0 14px" }}>
+                  <span style={{ fontFamily: FONT_DISPLAY, fontSize: 38, fontWeight: 600, color: i === 1 ? T.white : T.charcoal }}>{p.price}</span>
+                  <span style={{ fontFamily: FONT_BODY, fontSize: 14, color: i === 1 ? "rgba(255,255,255,0.6)" : T.muted }}>{p.per}</span>
+                </p>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 15, lineHeight: 1.6, color: i === 1 ? "rgba(255,255,255,0.8)" : T.ink, margin: 0 }}>{p.line}</p>
+              </div>
+            ))}
+          </div>
+          <p style={{ fontFamily: FONT_BODY, fontSize: 15, color: T.ink, margin: "24px 0 0" }}>
+            Add your own voice for a one-time {VOICE_CLONE_PRICE}.{" "}
+            <button onClick={() => setPage("pricing")} style={{ background: "none", border: "none", padding: 0, color: T.teal, fontWeight: 600, fontSize: 15, cursor: "pointer", textDecoration: "underline" }}>Compare plans in full</button>
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section style={{ padding: "96px 28px", background: T.white }}>
+        <div style={{ maxWidth: 760, margin: "0 auto" }}>
+          <H2>Questions people ask on demos</H2>
+          <div style={{ marginTop: 32 }}>
+            {FAQS.map(([q, a]) => (
+              <details key={q} className="faq" style={{ borderTop: `1px solid ${T.line}`, padding: "4px 0" }}>
+                <summary style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: T.charcoal, padding: "16px 0", cursor: "pointer", listStyle: "none", display: "flex", justifyContent: "space-between", gap: 16 }}>
+                  {q}<span aria-hidden="true" className="faq-icon" style={{ color: T.teal, fontFamily: FONT_BODY }}>+</span>
+                </summary>
+                <p style={{ fontFamily: FONT_BODY, fontSize: 16, lineHeight: 1.65, color: T.muted, margin: "0 0 18px", maxWidth: 640 }}>{a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
       <section style={{ padding: "100px 28px", background: T.teal, textAlign: "center" }}>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <h2 style={{ fontFamily: FONT_DISPLAY, fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 600, color: T.white, marginBottom: 20 }}>
-            See it answer your first missed call.
-          </h2>
-          <p style={{ fontFamily: FONT_BODY, fontSize: 16, color: "rgba(255,255,255,0.75)", marginBottom: 36 }}>
-            Book a 15-minute demo. No pressure, no jargon — just a straight look at how CalmCall would work for your business.
-          </p>
-          <button onClick={() => setPage("contact")} style={{ background: T.white, color: T.teal, border: "none", padding: "16px 36px", borderRadius: 100, fontFamily: FONT_BODY, fontSize: 15.5, fontWeight: 700, cursor: "pointer" }}>
-            Book a Demo
-          </button>
+        <H2 light center>Hear it answer a call for your business.</H2>
+        <div style={{ marginBottom: 36 }}>
+          <Lede light center>A 15-minute demo with your trade, your prices and your voice. No pressure, no jargon.</Lede>
         </div>
+        <button onClick={() => setPage("contact")} style={{ ...btnPrimary, background: T.white, color: T.teal, fontWeight: 700 }}>Book a demo</button>
       </section>
     </div>
   );
@@ -1157,7 +1357,9 @@ function CustomerTrackerDemo() {
         <div style={{ borderRadius: 22, overflow: "hidden", border: `1px solid ${T.line}`, background: T.white }}>
           <iframe
             ref={frameRef}
-            src={TRACKER_SRC}
+            {...(typeof window !== "undefined" && window.__CALMCALL_TRACKER_HTML__
+              ? { srcDoc: window.__CALMCALL_TRACKER_HTML__ }
+              : { src: TRACKER_SRC })}
             title="CalmCall customer job tracker demo"
             loading="lazy"
             scrolling="no"
@@ -1728,17 +1930,31 @@ export default function App() {
         .pricing-table-mobile { display: none; }
         @media (max-width: 860px) {
           .hero-grid { grid-template-columns: 1fr !important; }
-          .hero-grid > div:last-child { order: -1; margin-bottom: 20px; }
           .steps-grid { grid-template-columns: 1fr 1fr !important; }
           .trades-grid { grid-template-columns: 1fr 1fr !important; }
           .scenario-grid { grid-template-columns: 1fr !important; }
           .pricing-grid { grid-template-columns: 1fr !important; }
+          .lanes-grid, .split-grid, .eco-grid, .plans-grid { grid-template-columns: 1fr !important; }
+          .lane { padding: 28px 0 8px !important; border-left: none !important; }
+          .lane + .lane { border-top: 1px solid #E4E1D8; }
+          .hero-grid { gap: 36px !important; }
+          .hero-section { padding-top: 28px !important; }
+          .photo-card-top { left: -8px !important; top: 16px !important; }
+          .photo-card-bottom { right: -8px !important; bottom: 16px !important; }
           .trydemo-features-grid { grid-template-columns: 1fr !important; }
           .nav-desktop { display: none !important; }
           .nav-burger { display: block !important; }
           .pricing-table-desktop { display: none !important; }
           .pricing-table-mobile { display: block !important; }
         }
+        @media (max-width: 480px) {
+          .proof-list { grid-template-columns: 1fr !important; }
+        }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        .faq summary::-webkit-details-marker { display: none; }
+        .faq[open] .faq-icon { transform: rotate(45deg); }
+        .faq-icon { transition: transform .2s; font-size: 22px; line-height: 1; }
+        button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible { outline: 3px solid #E8A33D; outline-offset: 3px; }
         @media (min-width: 861px) {
           .nav-mobile-panel { display: none !important; }
         }
