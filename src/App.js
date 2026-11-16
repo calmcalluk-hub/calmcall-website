@@ -655,6 +655,27 @@ function Home({ setPage }) {
         </div>
       </section>
 
+      {/* VIDEO: missed call, missed job */}
+      <section style={{ padding: "96px 28px", background: T.white }}>
+        <div className="split-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "1.05fr 0.95fr", gap: 64, alignItems: "center" }}>
+          <div>
+            <p style={{ fontFamily: FONT_BODY, fontSize: 14, fontWeight: 600, color: T.amberDeep, margin: "0 0 14px" }}>Every ring counts</p>
+            <H2>Missed call. Missed job.</H2>
+            <Lede>
+              Most customers won't leave a voicemail. They ring the next number on Google. CalmCall picks up every call you can't, books the work in and texts you the details.
+            </Lede>
+            <div style={{ display: "flex", gap: 14, flexWrap: "wrap", marginTop: 30 }}>
+              <button onClick={() => setPage("contact")} style={btnPrimary}>Book a demo</button>
+            </div>
+          </div>
+          <div style={{ maxWidth: 340, width: "100%", margin: "0 auto", aspectRatio: "9 / 16", borderRadius: 24, overflow: "hidden", background: T.charcoal, boxShadow: "0 30px 60px rgba(0,0,0,0.25)" }}>
+            <video src="/calmcall-home.mp4" poster="/calmcall-home-poster.jpg" autoPlay muted loop playsInline controls preload="metadata"
+              aria-label="A phone ringing unanswered on a van workbench: missed call, missed job"
+              style={{ display: "block", width: "100%", height: "100%", objectFit: "cover" }} />
+          </div>
+        </div>
+      </section>
+
       {/* REAL-WORLD PHOTO: hands full, phone ringing */}
       <section style={{ padding: "96px 28px", background: T.teal, overflow: "hidden" }}>
         <div className="split-grid" style={{ maxWidth: 1080, margin: "0 auto", display: "grid", gridTemplateColumns: "0.95fr 1.05fr", gap: 64, alignItems: "center" }}>
