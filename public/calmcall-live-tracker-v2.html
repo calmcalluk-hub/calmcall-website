@@ -182,6 +182,51 @@
   }
   .review-btn[disabled]{ background:#e4e1d5; color:#a7a293; cursor:not-allowed; }
 
+  /* owner settings panel (website demo only) */
+  .owner-panel{
+    margin:4px 0 18px; padding:16px 16px 6px;
+    background:var(--paper); border:1px solid var(--border); border-radius:18px;
+  }
+  .owner-panel .op-title{ font-size:11.5px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:var(--teal); margin-bottom:12px; }
+  .owner-panel .op-label{ font-size:13px; font-weight:700; color:var(--ink); margin-bottom:8px; }
+  .owner-panel .pill-row{ margin-bottom:14px; }
+  .owner-panel .pill-row button{ font-size:12.5px; padding:7px 12px; }
+  .owner-panel .pill-row button.active{ background:var(--teal); border-color:var(--teal); }
+
+  /* thank-you reward card */
+  .reward-card{
+    background:linear-gradient(135deg,#fbf5e6 0%,#f6ecd2 100%);
+    border-color:#ead9ae; text-align:center; position:relative; overflow:hidden;
+  }
+  .reward-card .r-eyebrow{ font-size:11px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; color:#9a7420; margin-bottom:6px; }
+  .reward-card .r-value{ font-size:22px; font-weight:800; color:var(--ink); line-height:1.2; margin-bottom:6px; }
+  .reward-card .r-sub{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; margin-bottom:12px; }
+  .reward-card .r-code{
+    display:inline-block; font-size:14px; font-weight:800; letter-spacing:.12em; color:var(--teal);
+    background:#fff; border:1.5px dashed #d8bf7f; border-radius:10px; padding:8px 14px; margin-bottom:10px;
+  }
+  .reward-card .r-small{ font-size:10.5px; color:#a08a55; line-height:1.45; }
+  .reward-card.locked{ background:#fbfaf6; border-style:dashed; border-color:#d9d4c4; }
+  .reward-card.locked .r-value{ color:var(--ink-faint); font-size:17px; }
+  .reward-card.locked .r-code, .reward-card.locked .r-small{ display:none; }
+
+  /* loyalty card */
+  .loyalty-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px; }
+  .loyalty-head .l-title{ font-size:14.5px; font-weight:800; color:var(--ink); }
+  .loyalty-head .l-count{ font-size:12px; font-weight:700; color:var(--teal); }
+  .stamps{ display:grid; grid-template-columns:repeat(5,1fr); gap:9px; margin-bottom:12px; }
+  .stamp{
+    aspect-ratio:1; border-radius:50%; border:1.5px dashed var(--dot-future);
+    display:flex; align-items:center; justify-content:center; color:#fff;
+    font-size:12px; font-weight:800; background:#fbfaf6;
+  }
+  .stamp.filled{ background:var(--teal); border:1.5px solid var(--teal); }
+  .stamp.reward{ border-color:var(--gold); color:var(--gold); background:#fdf8ec; font-size:15px; }
+  .stamp.new{ animation:pop .55s ease; }
+  @keyframes pop{ 0%{ transform:scale(.4); opacity:0; } 70%{ transform:scale(1.12); opacity:1; } 100%{ transform:scale(1); } }
+  .loyalty-note{ font-size:12.5px; color:var(--ink-soft); line-height:1.5; }
+  .loyalty-note b{ color:var(--ink); }
+
   .footer-note{
     text-align:center; margin-top:6px;
     font-size:10.5px; color:var(--ink-faint); font-weight:700; letter-spacing:.01em;
@@ -204,7 +249,16 @@
     <h1>The link in your SMS, tidied up and taken seriously.</h1>
     <p>Every CalmCall client gets a page like this the moment a job's booked. Tap a stage to see how it updates — including the real Google Maps location link Dave shares on his way.</p>
     <div class="pill-row" id="pillRow"></div>
-    <div class="hint">Demo only — swap in your own business name, engineer and job details when you go live.</div>
+
+    <div class="owner-panel">
+      <div class="op-title">You set these in CalmCall</div>
+      <div class="op-label">Thank-you reward when a job's done</div>
+      <div class="pill-row" id="rewardRow"></div>
+      <div class="op-label">Loyalty card</div>
+      <div class="pill-row" id="loyaltyRow"></div>
+    </div>
+
+    <div class="hint">Demo only — swap in your own business name, engineer, job details and rewards when you go live. The thank-you reward goes to every customer whether or not they review, which keeps your Google profile within Google's rules.</div>
   </div>
 
   <div class="phone-shell">
@@ -240,6 +294,23 @@
               <div class="sub">Hollis Plumbing · Gas Safe registered</div>
             </div>
             <a class="call-btn" href="tel:+441803000000">Call</a>
+          </div>
+
+          <div class="card reward-card locked" id="rewardCard">
+            <div class="r-eyebrow">A thank-you from Hollis Plumbing</div>
+            <div class="r-value" id="rewardValue">Unlocks once your job's marked complete</div>
+            <div class="r-sub" id="rewardSub"></div>
+            <div class="r-code" id="rewardCode">HOLLIS-7Q2K</div>
+            <div class="r-small" id="rewardSmall">Valid for 12 months. Yours whether or not you leave a review.</div>
+          </div>
+
+          <div class="card" id="loyaltyCard">
+            <div class="loyalty-head">
+              <div class="l-title">Hollis Plumbing loyalty</div>
+              <div class="l-count" id="loyaltyCount"></div>
+            </div>
+            <div class="stamps" id="stamps"></div>
+            <div class="loyalty-note" id="loyaltyNote"></div>
           </div>
 
           <div class="card review-card">
@@ -313,6 +384,69 @@ const stages = [
   },
 ];
 
+const rewards = [
+  { key:'none',    pill:'None' },
+  { key:'voucher', pill:'£10 voucher', value:'£10 voucher',          sub:'Off your next job with us. Just quote the code when you book.' },
+  { key:'percent', pill:'10% off',     value:'10% off your next job', sub:'Just quote the code when you book.' },
+  { key:'pounds',  pill:'£20 off',     value:'£20 off your next job', sub:'On any job over £100. Just quote the code when you book.' },
+];
+const loyalties = [
+  { key:'off', pill:'Off' },
+  { key:'5',  pill:'5 jobs', size:5,  before:2, reward:'£50 off your next job' },
+  { key:'10', pill:'10 visits', size:10, before:6, reward:'a free visit' },
+];
+let rewardIdx = 2, loyaltyIdx = 1;
+
+function buildPills(rowId, items, onPick){
+  const row = document.getElementById(rowId);
+  items.forEach((it,i)=>{
+    const b = document.createElement('button');
+    b.textContent = it.pill;
+    b.addEventListener('click', ()=> onPick(i));
+    row.appendChild(b);
+  });
+}
+function markActive(rowId, idx){
+  document.querySelectorAll('#'+rowId+' button').forEach((b,i)=> b.classList.toggle('active', i===idx));
+}
+
+function renderReward(isComplete){
+  const r = rewards[rewardIdx];
+  const card = document.getElementById('rewardCard');
+  markActive('rewardRow', rewardIdx);
+  card.style.display = r.key === 'none' ? 'none' : 'block';
+  if(r.key === 'none') return;
+  card.classList.toggle('locked', !isComplete);
+  document.getElementById('rewardValue').textContent = isComplete ? r.value : 'A little thank-you unlocks when your job\'s complete';
+  document.getElementById('rewardSub').textContent = isComplete ? r.sub : '';
+}
+
+function renderLoyalty(isComplete, animate){
+  const l = loyalties[loyaltyIdx];
+  const card = document.getElementById('loyaltyCard');
+  markActive('loyaltyRow', loyaltyIdx);
+  card.style.display = l.key === 'off' ? 'none' : 'block';
+  if(l.key === 'off') return;
+  const filled = l.before + (isComplete ? 1 : 0);
+  const grid = document.getElementById('stamps');
+  grid.innerHTML = '';
+  for(let i=0;i<l.size;i++){
+    const d = document.createElement('div');
+    const isReward = i === l.size-1;
+    d.className = 'stamp' + (i < filled ? ' filled' : '') + (isReward && i >= filled ? ' reward' : '') + (animate && isComplete && i === filled-1 ? ' new' : '');
+    d.textContent = i < filled ? '✓' : (isReward ? '★' : '');
+    grid.appendChild(d);
+  }
+  const left = l.size - filled;
+  document.getElementById('loyaltyCount').textContent = filled + ' of ' + l.size;
+  document.getElementById('loyaltyNote').innerHTML = isComplete
+    ? 'Stamp added for today\'s job. <b>' + left + ' more</b> to fill your card and get <b>' + l.reward + '</b>.'
+    : 'Today\'s job adds a stamp once it\'s complete. Fill your card to get <b>' + l.reward + '</b>.';
+}
+
+buildPills('rewardRow', rewards, i=>{ rewardIdx = i; renderReward(stages[current].key==='complete'); });
+buildPills('loyaltyRow', loyalties, i=>{ loyaltyIdx = i; renderLoyalty(stages[current].key==='complete', false); });
+
 let current = 1;
 const pillRow = document.getElementById('pillRow');
 stages.forEach((s,i)=>{
@@ -347,10 +481,13 @@ function setStage(i){
 
   const reviewBtn = document.getElementById('reviewBtn');
   const reviewNote = document.getElementById('reviewNote');
-  if(s.key === 'complete'){
+  const isComplete = s.key === 'complete';
+  renderReward(isComplete);
+  renderLoyalty(isComplete, true);
+  if(isComplete){
     reviewBtn.removeAttribute('disabled');
     reviewBtn.textContent = 'Leave a Google review';
-    reviewNote.textContent = 'Thanks for choosing Hollis Plumbing!';
+    reviewNote.textContent = 'Happy with the work? A quick review really helps a small local business.';
   } else {
     reviewBtn.setAttribute('disabled','disabled');
     reviewNote.textContent = "Unlocks once your job's marked complete";
