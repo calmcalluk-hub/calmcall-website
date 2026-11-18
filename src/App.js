@@ -142,6 +142,26 @@ function Nav({ page, setPage }) {
   );
 }
 
+const DEMO_NUMBER = "0114 697 4507";
+const DEMO_TEL = "tel:+441146974507";
+
+function CallDemo({ dark, center, style }) {
+  return (
+    <a href={DEMO_TEL} aria-label={`Call our AI receptionist on ${DEMO_NUMBER}`}
+      style={{ display: "inline-flex", alignItems: "center", gap: 12, textDecoration: "none", padding: "10px 18px 10px 10px", borderRadius: 100,
+        background: dark ? "rgba(255,255,255,0.08)" : T.white, border: `1px solid ${dark ? "rgba(255,255,255,0.16)" : T.line}`,
+        margin: center ? "0 auto" : 0, ...style }}>
+      <span aria-hidden="true" style={{ width: 36, height: 36, borderRadius: "50%", background: T.amber, color: T.charcoal, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+      </span>
+      <span style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+        <span style={{ fontFamily: FONT_BODY, fontSize: 12.5, fontWeight: 600, color: dark ? "rgba(255,255,255,0.65)" : T.muted }}>Hear it live: ring our AI receptionist</span>
+        <span style={{ fontFamily: FONT_DISPLAY, fontSize: 19, fontWeight: 600, color: dark ? T.white : T.charcoal, letterSpacing: 0.3 }}>{DEMO_NUMBER}</span>
+      </span>
+    </a>
+  );
+}
+
 function Footer({ setPage }) {
   return (
     <footer style={{ background: T.charcoal, color: "rgba(255,255,255,0.75)", padding: "64px 28px 32px" }}>
@@ -158,6 +178,7 @@ function Footer({ setPage }) {
             <a href="mailto:calmcalluk@gmail.com" style={{ fontFamily: FONT_BODY, fontSize: 14, color: T.amber, textDecoration: "none", fontWeight: 500 }}>
               calmcalluk@gmail.com
             </a>
+            <div style={{ marginTop: 20 }}><CallDemo dark /></div>
           </div>
           <div style={{ display: "flex", gap: 56, flexWrap: "wrap" }}>
             <div>
@@ -644,6 +665,7 @@ function Home({ setPage }) {
               <button onClick={() => setPage("contact")} style={btnPrimary}>Book a demo</button>
               <button onClick={() => setPage("try")} style={btnGhost}>Try it yourself</button>
             </div>
+            <div style={{ marginBottom: 30 }}><CallDemo /></div>
             <ul className="proof-list" style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 24px", maxWidth: 520 }}>
               {["Works on iPhone and Android", "Flat price, no minute caps", "Live in about ten minutes", "Keep your own number"].map(t => (
                 <li key={t} style={{ fontFamily: FONT_BODY, fontSize: 14.5, color: T.charcoal, display: "flex", gap: 10, alignItems: "center" }}>
@@ -1414,6 +1436,7 @@ function TryDemo({ setPage }) {
         <p style={{ fontFamily: FONT_BODY, fontSize: 16.5, color: T.muted, maxWidth: 560, margin: "0 auto" }}>
           A live, working example &mdash; not a screenshot. Tap through calls, the diary, live van tracking, leads and the team dashboard exactly as your business would see them.
         </p>
+        <div style={{ marginTop: 28 }}><CallDemo center /></div>
       </section>
 
       <section style={{ padding: "20px 28px 60px", background: T.porcelain }}>
@@ -1848,6 +1871,7 @@ function Contact() {
         <p style={{ fontFamily: FONT_BODY, fontSize: 16.5, color: T.muted, maxWidth: 480, margin: "0 auto" }}>
           15 minutes, no pressure. We'll walk through exactly how it'd work for your business.
         </p>
+        <div style={{ marginTop: 28 }}><CallDemo center /></div>
       </section>
 
       <section style={{ padding: "40px 28px 100px", background: T.porcelain }}>
